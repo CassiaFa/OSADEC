@@ -1,0 +1,35 @@
+# Use root/example as user/password credentials
+version: '3.1'
+
+services:
+
+  db:
+    image: mysql
+    restart: always
+    container_name: osadecdb
+    command: --secure-file-priv=/var/lib/mysql-files
+    environment:
+      # Name of the database
+      # MYSQL_DATABASE: 'OSADEC'
+      # Root password
+      MYSQL_ROOT_PASSWORD: 'godofdb29'
+      # User name
+      MYSQL_USER: 'admin'
+      # User password
+      MYSQL_PASSWORD: 'admin'
+    ports:
+      # <Port exposed>:<MySQL port running inside container>
+      - '3307:3306'
+    expose:
+      # Open port 3306 on the container
+      - '3307'
+    volumes:
+      # Where data will be persisted
+      - ./osadecdb:/var/lib/mysql
+      - ./db_files/init_db.sql:/docker-entrypoint-initdb.d/1_schema.sql
+      - ./db_files/load_data.sql:/docker-entrypoint-initdb.d/2_load_data.sql
+      - ./db_files/init_data/:/var/lib/mysql-files/
+      # /docker-entrypoint-initdb.d/init_data
+# # Names of volume
+# volumes:
+#   osadecdb:

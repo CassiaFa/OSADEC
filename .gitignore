@@ -1,6 +1,7 @@
 # Folders
 .venv
 __pycache__
+osadec
 
 # Files
 .env

@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block title %}OSADEC | Account{% endblock %}
+
+{% block content %}
+
+<div>
+    <div class="user_info">
+        <p>Les infos utilisateur</p>
+    </div>
+    <div>
+        
+        <!-- <div
+        id="drop_zone"
+        ondrop="dropHandler(event);"
+        ondragover="dragOverHandler(event);">
+            <p>Drag one or more files to this <i>drop zone</i>.</p>
+        </div> -->
+    </div>
+</div>
+
+{% endblock %}
+
+<!-- {% block script %}
+    <script>
+        function dragstart_handler(ev) {
+        // Add the target element's id to the data transfer object
+        ev.dataTransfer.setData("text/plain", ev.target.id);
+        }
+    
+        window.addEventListener("DOMContentLoaded", () => {
+        // Get the element by id
+        const element = document.getElementById("drop_zone");
+        // Add the ondragstart event listener
+        element.addEventListener("dragstart", dragstart_handler);
+        });
+    </script> 
+{% endblock %} -->

@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block title %}OSADEC | Sign in{% endblock %}
+
+{% block links %}
+<link rel="stylesheet" href="{{ url_for('static', filename='sign_in.css') }}">
+{% endblock %} 
+
+{% block content %}
+    <div class="login-container">
+        <h1>Sign In</h1>
+        <form action="{{ url_for('account') }}" method="post">
+          <div class="form-group">
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username">
+          </div>
+          <div class="form-group">
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password">
+          </div>
+          <button type="submit">Sign In</button>
+          <input name="state" type="hidden" value="sign_in">
+        </form>
+        <p>
+          Don't have an account? <a href="{{ url_for('sign_up') }}">Sign up</a>
+        </p>
+        <p>
+          <a href="{{ url_for('forgot_password') }}">Forgot password?</a>
+        </p>
+      </div>
+      
+{% endblock %}

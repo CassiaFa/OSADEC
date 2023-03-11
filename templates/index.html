@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+
+{% block title %}OSADEC{% endblock %}
+
+{% block content %}
+    <section class="intro">
+        <h2 class="intro-title">Annoter les sons des mammifères marins</h2>
+        <p class="intro-text">Notre application vous aide à annoté les données acoustiques sous-marines pour découvrir les mammifères marins dans leur environnement naturel.</p>
+        <a class="intro-button" href="{{ url_for("sign_in") }}">Get started</a>
+    </section>
+{% endblock %}

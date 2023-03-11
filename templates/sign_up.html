@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block title %}OSADEC | Create Account{% endblock %}
+
+
+{% block links %}
+<link rel="stylesheet" href="{{ url_for('static', filename='sign_in.css') }}">
+{% endblock %} 
+
+{% block content %}
+<div class="login-container">
+    <h1>Create Account</h1>
+    <form action="{{ url_for('account') }}" method="post">
+      <div class="form-group">
+        <label for="gender">Gender:</label>
+        <select id="gender" name="gender">
+          <option value="">Choose your gender</option>
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="firstName">First name:</label>
+        <input type="text" id="firstName" name="firstName" required>
+      </div>
+      <div class="form-group">
+        <label for="lastName">Last name:</label>
+        <input type="text" id="lastName" name="lastName" required>
+      </div>
+      <div class="form-group">
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username" required>
+      </div>
+      <div class="form-group">
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required>
+      </div>
+      <div class="form-group">
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" required>
+      </div>
+      <div class="form-group">
+        <button type="submit">Create Account</button>
+        
+        <input name="state" type="hidden" value="sign_up">
+      </div>
+    </form>
+  </div>
+{% endblock %}

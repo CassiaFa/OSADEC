@@ -87,12 +87,26 @@ class Database():
             return True
         else:
             return False
+    
+    @classmethod
+    def get_files(cls, id_file=None):
 
+        if id_file:
+            querry = f"SELECT name, date, path FROM FILES WHERE id_file={id_file};"
+        else:
+            querry = "SELECT name, date, path FROM FILES;"
+        
+        cls.__cursor.execute(querry)
+
+        result = cls.__cursor.fetchall()
+
+        return result
+    
     @classmethod
     def get_detections(cls, id_file=None):
 
         if id_file:
-            querry += f"SELECT start, stop, id_species FROM DETECTIONS WHERE id_file={id_file};"
+            querry = f"SELECT start, stop, id_species FROM DETECTIONS WHERE id_file={id_file};"
         else:
             querry = "SELECT start, stop, id_species FROM DETECTIONS;"
         

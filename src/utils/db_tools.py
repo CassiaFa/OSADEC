@@ -92,9 +92,9 @@ class Database():
     def get_files(cls, id_file=None):
 
         if id_file:
-            querry = f"SELECT name, date, path FROM FILES WHERE id_file={id_file};"
+            querry = f"SELECT id_file, name, date, path, fs FROM FILES WHERE id_file={id_file};"
         else:
-            querry = "SELECT name, date, path FROM FILES;"
+            querry = "SELECT id_file, name, date, path, fs FROM FILES;"
         
         cls.__cursor.execute(querry)
 
@@ -115,6 +115,8 @@ class Database():
         result = cls.__cursor.fetchall()
 
         return result
+    
+    #TODO : add class method for get_labels informations
     # def __init__(self) -> None:
 
     #     self.__USER = 'root'

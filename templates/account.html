@@ -2,24 +2,118 @@
 
 {% block title %}OSADEC | Account{% endblock %}
 
+{% block links %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='account.css') }}">
+    {{ dropzone.load_css() }}
+    {{ dropzone.style('border: 4px dashed blue; border-radius: 5px; margin: 10px 0 10px; min-height: 130px; width: 40%; text-align: center; font-weight: bold; font-family: "EB Garamond", serif;') }}
+    <script src="{{ url_for('static', filename='script_tab.js') }}" type="module"></script>
+{% endblock %}  
+
 {% block content %}
 
-<div>
+<div class="user_field">
     <div class="user_info">
-        <p>Les infos utilisateur</p>
+        <div class="user_img circleBase">
+            <img src="{{ url_for('static', filename='images/user.png') }}" alt="User image">
+        </div>
+        <div class="user_perso">
+            <table>
+                <tbody>
+                    <tr>
+                        <th colspan="2">{{ user['username'].upper() }}</th>
+                    </tr>
+                    <tr>
+                        <td>First Name:</td>
+                        <td>{{ user['first_name'] }}</td>
+                    </tr>
+                    <tr>
+                        <td>Last Name:</td>
+                        <td>{{ user['last_name'] }}</td>
+                    </tr>
+                    <tr>
+                        <td>E-mail:</td>
+                        <td>{{ user['email'] }}</td>
+                    </tr>
+                    <tr>
+                        <td>Registration date:</td>
+                        <td>{{ user['registration_date'] }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </div>
-    <div>
-        
-        <!-- <div
-        id="drop_zone"
-        ondrop="dropHandler(event);"
-        ondragover="dragOverHandler(event);">
-            <p>Drag one or more files to this <i>drop zone</i>.</p>
-        </div> -->
+    <div class="tabs">
+        <div class="tab-registers">
+            <button class="active-tab tab-button">Analyse</button>
+            <button class="tab-button">Explore files</button>
+        </div>
+        <div class="tab-bodies">
+            <div class="dashboard" style="display:block;">
+                <h1 class="title_form">Analyse a new file</h1>
+                <form action="#" enctype="multipart/form-data" method="post">
+                    <div id="project" class="element_form">
+                        <label for="project">Project Name:  </label>
+                        <input type="text" name="project" placeholder="Project Name*" required>
+                        <label for="depth">Depth:  </label>
+                        <input type="number" name="depth" placeholder="Depth of acquisition*" required>
+                    </div>
+                    <div id="coordinate" class="element_form">
+                        <label for="lat">Latitude:  </label>
+                        <input type="text" name="lat" placeholder="Latitude*" required>
+                        <label for="long">Longitude:  </label>
+                        <input type="text" name="long" placeholder="Longitude*" required>
+                    </div>
+                    
+                    
+                    {{ dropzone.create() }}
+                    <input type="submit" id="submit" value="Upload and analyse">
+                    <p id="obligation">* Required fields</p>
+                </form>
+                
+                {{ dropzone.load_js() }}
+                {{ dropzone.config() }}
+            </div>
+            <div class="dashboard explore" style="display:none;">
+                <h1 class="title_form">List of files</h1>
+                <div style="overflow-x:auto;">
+                    <table >
+                        <tr>
+                            <th>File name</th>
+                            <th>Acquisition date</th>
+                            <th>Download</th>
+                        </tr>
+                        {% for f in files %}
+                            <tr>
+                                <td><a href="#">{{ f['name'] }}</a></td>
+                                <td><a href="#">{{ f['date'] }}</a></td>
+                                <td class="ctr">{{ f['path'] }}</td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
+    
 </div>
 
+
+{% if config['DEBUG'] %}
+<pre>
+    <code>
+        {{ config }}
+    </code>
+</pre>
+
+<style>
+    pre {
+        white-space: pre-wrap;
+    }
+</style>
+{% endif %}
+
 {% endblock %}
+
 
 <!-- {% block script %}
     <script>

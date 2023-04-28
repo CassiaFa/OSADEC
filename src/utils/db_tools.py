@@ -61,7 +61,7 @@ class Database():
                                         database = cls.__DB
                                         )
 
-            cls.__cursor = cls.__bdd.cursor()
+            cls.__cursor = cls.__bdd.cursor(dictionary=True)
     
     @classmethod
     def close_connexion(cls):
@@ -71,7 +71,7 @@ class Database():
     
     @classmethod
     def add_user(cls, gender, first_name, last_name, username, email, password):
-        password = cls.__secure.encrypt(password, cls.__cursor)
+        # password = cls.__secure.encrypt(password, cls.__cursor)
         querry = "INSERT INTO users (gender, first_name, last_name, username, email, password) VALUES (%s, %s, %s, %s, %s, %s);"
         param = (gender, first_name, last_name, username, email, password)
         cls.__cursor.execute(querry, param)
@@ -79,14 +79,17 @@ class Database():
 
     @classmethod
     def check_user(cls, username, password):
-        querry = f"SELECT password FROM users WHERE username='{username}';"
+        querry = f"SELECT * FROM users WHERE username='{username}';"
         cls.__cursor.execute(querry)
-        pwd = cls.__cursor.fetchone()[0]
 
-        if password == cls.__secure.decrypt(pwd, cls.__cursor):
-            return True
+        user = cls.__cursor.fetchone()
+
+        # if password == cls.__secure.decrypt(user['password'], cls.__cursor):
+        if password == user['password']:
+            return user
         else:
             return False
+
     
     @classmethod
     def get_files(cls, id_file=None):

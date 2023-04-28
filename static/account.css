@@ -1,0 +1,148 @@
+.user_field{
+    display: flex;
+}
+
+.user_info {
+    background-color: #f80606;
+    width: 20%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+/* ================================= */
+/*              TAB STYLE            */
+/* ================================= */
+
+.tabs { 
+    font-family: 'EB Garamond', serif;
+    font-size: 1.2rem;
+    width: 100%;
+}
+
+.tabs .tab-registers {
+    display: flex;
+    background-color: RGB(255, 255, 255);
+    font-weight:  bold;
+}
+
+
+.tabs button {
+    padding: 0.5em;
+    background-color: RGB(255, 255, 255);
+    border: none;
+    font: inherit;
+}
+
+.tabs .tab-registers button:hover {
+    cursor: pointer;
+}
+
+.tabs .tab-bodies {
+    padding: 0.5em;
+    background-color: RGB(235, 235, 235);
+    flex-grow: 1;
+    overflow-y: auto;
+}
+
+.tabs button.active-tab {
+    background-color: rgb(235, 235, 235);
+}
+
+.tab-button:hover {
+    background-color: rgb(235, 235, 235);
+    border-radius: 3px;
+}
+
+/* ================================= */
+
+
+
+.dashboard{
+    background-color: #06f826;
+    width : 100%;
+}
+
+.user_img {
+    background-color: #6f00ff;
+    width: 10rem;
+    height: 10rem;
+    border: 2px;
+    margin: 2%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.circleBase{
+    border-radius: 50%;
+}
+
+img {
+    max-width: 100%;
+    max-height: 100%;
+}
+
+.user_perso {
+    background-color: aqua;
+    margin: auto;
+    width: 100%;
+    height: 100%;
+    margin-top: 10px;
+}
+
+table {
+    margin: 10px auto; /* or margin: 0 auto 0 auto */
+    font-family: 'EB Garamond', serif;
+}
+
+td {
+    padding: 10px;
+    text-align: left;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 30%;
+    min-width: 50%;
+}
+
+.element_form {
+    margin: 10px auto;
+}
+
+label {
+    font-family: 'EB Garamond', serif;
+    font-weight: bold;
+    margin-left: 10px;
+    margin-right: 5px;
+}
+
+input {
+    border-radius: 5px;
+    padding: 2px;
+    border: 2px solid blue;
+}
+
+#submit {
+    border: 2px solid blue;
+    color: blue;
+    padding: 10px 20px;
+    border-radius: 5px;
+    height: 50%;
+    font-size: 16px;
+    text-decoration: none;
+    margin-bottom: 10px;
+}
+
+#submit:hover {
+    background-color: blue;
+    color: white;
+  }
+
+.explore {
+    background-color: pink;
+}

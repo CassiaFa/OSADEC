@@ -7,8 +7,10 @@ biblio
 images
 data
 data_img
+weight
 
 
 # Files
 .env
 *.wav
+test*

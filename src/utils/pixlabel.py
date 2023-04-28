@@ -24,7 +24,7 @@ class COCO_label():
         image = {
                     "id":id,
                     "width":width,
-                    "heigh":height,
+                    "height":height,
                     "file_name":file_name
                 }
         self.images.append(image)
@@ -34,7 +34,10 @@ class COCO_label():
                         "id": id,
                         "image_id": img_id,
                         "category_id": cat_id,
-                        "bbox": bbox
+                        # "segmentation": [bbox[0], bbox[1], bbox[0]+bbox[2], bbox[1], bbox[0]+bbox[2], bbox[1]+bbox[-1], bbox[0], bbox[1]+bbox[-1]],
+                        "area": bbox[-2]*bbox[-1],
+                        "bbox": bbox,
+                        "iscrowd": 0
                     }
         
         self.annotations.append(annotation)
@@ -90,7 +93,9 @@ class Range:
 
 class Spectrogram():
 
-    def __init__(self, s, fs:int, nfft=2048, win_size=2048, overlap=.5, cmap_color='Greys') -> None:
+    def __init__(self, s, fs:int, img_name, nfft=2048, win_size=2048, overlap=.5, cmap_color='Greys') -> None:
+
+        self.img_name = img_name
 
         noverlap = int(win_size * overlap/100)
         nperseg = win_size
@@ -155,36 +160,41 @@ class Spectrogram():
         fact_x = 1 # 1.3
         fact_y = 1 # 1.3
         y = 1500 # 512
-        color_val_range = Range("-100:-80")
+        # color_val_range = Range("-100:-80")
         
-        min_color_val = color_val_range.min if color_val_range else None
-        max_color_val = color_val_range.max if color_val_range else None
+        # min_color_val = color_val_range.min if color_val_range else None
+        # max_color_val = color_val_range.max if color_val_range else None
 
-        self.fig = plt.figure(figsize=(fact_x * 1800 / my_dpi, fact_y * y / my_dpi), dpi=my_dpi)
+        # self.fig = plt.figure(figsize=(fact_x * 1800 / my_dpi, fact_y * y / my_dpi), dpi=my_dpi)
+        self.fig = plt.figure()
         plt.pcolormesh(segment_times, frequencies, log_spectro, cmap=cmap_color)
-        plt.clim(vmin=min_color_val, vmax=max_color_val)
+        # plt.clim(vmin=min_color_val, vmax=max_color_val)
 
-        plt.ylim(15, 80)
+        plt.ylim(15, 150) #90)
 
         plt.axis('off')
         self.fig.tight_layout()
 
-        self.fig.savefig('test.png', dpi=my_dpi)
-        # plt.show()
-        # self.fig, self.ax = plt.subplots()
-        # self.points, = self.ax.plot(range(10), 'ro')
-        # self.ax.axis([-1, 10, -1, 10])
+        self.width, self.height = self.fig.canvas.get_width_height()
 
-    def get_coordinates(self, x, y, w, h):
+        # self.fig.savefig('test.png', dpi=my_dpi)
+    
+
+    def get_coordinates(self, start, fmin, end, fmax):
         # Get the x and y data and transform it into pixel coordinates
         ax = plt.gca()
-        xywh_pixels = ax.transData.transform(np.vstack([x,y,w,h]).T)
-        # xy_pixels = self.ax.transData.transform(np.vstack([x,y]).T)
-        [xpix, wpix], [ypix, hpix] = xywh_pixels.T
-        # self.xpix, self.ypix = xy_pixels.T
-        _, height = self.fig.canvas.get_width_height()
-        # self.ypix = height - self.ypix
-        ypix, hpix = height - ypix, height - hpix
+        # xywh_pixels = ax.transData.transform(np.vstack([x,fmin,w,fmax]).T)
+
+        # [xpix, wpix], [ypix, hpix] = xywh_pixels.T
+
+        # =============== BEST ===============
+        xy_pixels = ax.transData.transform(np.vstack([start, fmin, end, fmax]).T)
+        [x1, x2], [y2, y1] = xy_pixels.T
+        y2, y1 = self.height - y2, self.height - y1
+        x, y, w, h = x1, y1, x2-x1, y2-y1
+
+        return x, y, w, h
+        # ypix, hpix = self.height - ypix, self.height - hpix
         # print('Coordinates of the points in pixel coordinates...')
 
         # for xp, yp in zip(self.xpix, self.ypix):
@@ -192,9 +202,24 @@ class Spectrogram():
 
         # We have to be sure to save the figure with it's current DPI
         # (savfig overrides the DPI of the figure, by default)
-        self.fig.savefig('test.png', dpi=self.fig.dpi)
+        
+        # return xpix, ypix, wpix, hpix # -ypix
 
-        return xpix, ypix, wpix, hpix
+    def save_img(self, path=None):
+        if path:
+            self.fig.savefig(os.path.join(path,self.img_name), dpi=self.fig.dpi)
+        else:
+            self.fig.savefig(self.img_name, dpi=self.fig.dpi)
+
+    def close(self):
+
+        plt.close(self.fig)
+
+def butter_highpass_filter(data, cutoff, sample_rate, order):
+    """Applies highpass (above cutoff) Butterworth digital filter of given order on data"""
+    normal_cutoff = cutoff / (0.5 * sample_rate)
+    numerator, denominator = signal.butter(order, normal_cutoff, btype='high', analog=False)
+    return signal.filtfilt(numerator, denominator, data)
 
 def main():
     test = Spectrogram()

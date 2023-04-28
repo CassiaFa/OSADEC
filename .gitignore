@@ -2,6 +2,12 @@
 .venv
 __pycache__
 osadecdb
+cocosplit
+biblio
+images
+data
+data_img
+
 
 # Files
 .env

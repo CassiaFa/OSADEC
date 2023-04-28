@@ -2,7 +2,15 @@
 .venv
 __pycache__
 osadecdb
+cocosplit
+biblio
+images
+data
+data_img
+weight
+
 
 # Files
 .env
 *.wav
+test*

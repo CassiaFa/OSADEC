@@ -4,8 +4,6 @@
 
 {% block links %}
     <link rel="stylesheet" href="{{ url_for('static', filename='account.css') }}">
-    {{ dropzone.load_css() }}
-    {{ dropzone.style('border: 4px dashed blue; border-radius: 5px; margin: 10px 0 10px; min-height: 130px; width: 40%; text-align: center; font-weight: bold; font-family: "EB Garamond", serif;') }}
     <script src="{{ url_for('static', filename='script_tab.js') }}" type="module"></script>
 {% endblock %}  
 
@@ -49,29 +47,35 @@
         </div>
         <div class="tab-bodies">
             <div class="dashboard" style="display:block;">
+              
                 <h1 class="title_form">Analyse a new file</h1>
-                <form action="#" enctype="multipart/form-data" method="post">
+                <form id="upload-form" action="/upload" enctype="multipart/form-data" method="post" onsubmit="handleSubmit(event)">
                     <div id="project" class="element_form">
-                        <label for="project">Project Name:  </label>
+                        <label for="project">Project Name: *  </label>
                         <input type="text" name="project" placeholder="Project Name*" required>
-                        <label for="depth">Depth:  </label>
+                        <label for="acquisition_date">Date of acquisition: *  </label>
+                        <input type="datetime-local" name="acquisition_date" step="1"  required>
+                    </div>
+                    <div class="element_form">
+                        <label for="depth">Depth: * </label>
                         <input type="number" name="depth" placeholder="Depth of acquisition*" required>
+                        <label for="fs">Frequency sample: * </label>
+                        <input type="number" name="fs" placeholder="Frequency sample (Hz) *" required>
                     </div>
                     <div id="coordinate" class="element_form">
-                        <label for="lat">Latitude:  </label>
+                        <label for="lat">Latitude: * </label>
                         <input type="text" name="lat" placeholder="Latitude*" required>
-                        <label for="long">Longitude:  </label>
+                        <label for="long">Longitude: * </label>
                         <input type="text" name="long" placeholder="Longitude*" required>
                     </div>
-                    
-                    
-                    {{ dropzone.create() }}
+                    <div class="dropzone" id="dropzone">
+                        <p>Drag and drop files here, or click to select files</p>
+                        <input type="file" id="file" name="file" onchange="handleFileSelect(this)" required>
+                    </div>
                     <input type="submit" id="submit" value="Upload and analyse">
                     <p id="obligation">* Required fields</p>
-                </form>
-                
-                {{ dropzone.load_js() }}
-                {{ dropzone.config() }}
+                  </form>
+
             </div>
             <div class="dashboard explore" style="display:none;">
                 <h1 class="title_form">List of files</h1>

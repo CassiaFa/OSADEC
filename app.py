@@ -13,15 +13,15 @@ ALLOWED_EXTENSIONS = {'wav'}
 app = Flask(__name__)
 
 app.config['UPLOAD_PATH'] = os.getenv('UPLOAD_FOLDER')
-app.config.update(
-    # Flask-Dropzone config:
-    DROPZONE_ALLOWED_FILE_TYPE='audio',
-    DROPZONE_MAX_FILES=1,
-    DROPZONE_IN_FORM=True,
-    DROPZONE_UPLOAD_ON_CLICK=True,
-    DROPZONE_UPLOAD_ACTION='handle_upload',  # URL or endpoint
-    DROPZONE_UPLOAD_BTN_ID='submit',
-)
+# app.config.update(
+#     # Flask-Dropzone config:
+#     DROPZONE_ALLOWED_FILE_TYPE='audio',
+#     DROPZONE_MAX_FILES=1,
+#     DROPZONE_IN_FORM=True,
+#     DROPZONE_UPLOAD_ON_CLICK=True,
+#     DROPZONE_UPLOAD_ACTION='handle_upload',  # URL or endpoint
+#     DROPZONE_UPLOAD_BTN_ID='submit',
+# )
 
 # Check if file have the good extension
 def allowed_file(filename):
@@ -48,6 +48,13 @@ def forgot_password():
 
 @app.route('/account', methods=['POST'])
 def account():
+    """
+    Route for account page with POST method.
+    If state parameter is 'sign_in', checks if user exists in database with given username and password.
+    If user exists, renders the account page with user details and files associated with the user.
+    If state parameter is 'sign_up', adds the new user to the database with provided details and renders the account page with the new user details and files associated with the user.
+    """
+
     state = request.values.get('state')
     if state == "sign_in":
         username = request.values.get('username')
@@ -94,6 +101,14 @@ def account():
 # Modify this part
 @app.route('/upload', methods=['POST'])
 def handle_upload():
+    
+
+    project_name = request.values.get('project')
+    depth = request.values.get('depth')
+    lat = request.values.get('lat')
+    long = request.values.get('long')
+
+    print(request.files)
     for key, f in request.files.items():
         if key.startswith('file'):
             f.save(os.path.join(app.config['UPLOAD_PATH'], f.filename))

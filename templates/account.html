@@ -3,8 +3,9 @@
 {% block title %}OSADEC | Account{% endblock %}
 
 {% block links %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='account.css') }}">
-    <script src="{{ url_for('static', filename='script_tab.js') }}" type="module"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/account.css') }}">
+    <script type="module" src="{{ url_for('static', filename='js/script_tab.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/dropzone.js') }}"></script>
 {% endblock %}  
 
 {% block content %}
@@ -75,7 +76,7 @@
                     <input type="submit" id="submit" value="Upload and analyse">
                     <p id="obligation">* Required fields</p>
                   </form>
-
+                  <button id="test">test</button>
             </div>
             <div class="dashboard explore" style="display:none;">
                 <h1 class="title_form">List of files</h1>
@@ -101,36 +102,4 @@
     
 </div>
 
-
-{% if config['DEBUG'] %}
-<pre>
-    <code>
-        {{ config }}
-    </code>
-</pre>
-
-<style>
-    pre {
-        white-space: pre-wrap;
-    }
-</style>
-{% endif %}
-
 {% endblock %}
-
-
-<!-- {% block script %}
-    <script>
-        function dragstart_handler(ev) {
-        // Add the target element's id to the data transfer object
-        ev.dataTransfer.setData("text/plain", ev.target.id);
-        }
-    
-        window.addEventListener("DOMContentLoaded", () => {
-        // Get the element by id
-        const element = document.getElementById("drop_zone");
-        // Add the ondragstart event listener
-        element.addEventListener("dragstart", dragstart_handler);
-        });
-    </script> 
-{% endblock %} -->

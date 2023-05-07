@@ -14,31 +14,15 @@ class Encryptor():
         querry = "SELECT AES_ENCRYPT(%s, %s);"
         param = (txt, cls.__key)
         cursor.execute(querry, param)
-        return cursor.fetchone()[0].decode(cls.__encoding)
+        return list(cursor.fetchone().values())[0].decode(cls.__encoding)
 
     @classmethod
     def decrypt(cls, pwd, cursor):
         querry = "SELECT AES_DECRYPT(%s, %s);"
         param = (bytearray(pwd, cls.__encoding), cls.__key)
         cursor.execute(querry, param)
-        return cursor.fetchone()[0].decode(cls.__encoding)
-
-    # def __init__(self) -> None:
-    #     load_dotenv()
-    #     self.__key = os.getenv('ENCRYPT_KEY')
-    #     self.__encoding = os.getenv('ENCODING')
+        return list(cursor.fetchone().values())[0].decode(cls.__encoding)
     
-    # def encrypt(self, txt:str, cursor):
-    #     querry = "SELECT AES_ENCRYPT(%s, %s);"
-    #     param = (txt, self.__key)
-    #     cursor.execute(querry, param)
-    #     return cursor.fetchone()[0].decode(self.__encoding)
-
-    # def decrypt(self, pwd, cursor):
-    #     querry = "SELECT AES_DECRYPT(%s, %s);"
-    #     param = (bytearray(pwd, self.__encoding), self.__key)
-    #     cursor.execute(querry, param)
-    #     return cursor.fetchone()[0].decode(self.__encoding)
 
 class Database():
 
@@ -71,7 +55,7 @@ class Database():
     
     @classmethod
     def add_user(cls, gender, first_name, last_name, username, email, password):
-        # password = cls.__secure.encrypt(password, cls.__cursor)
+        password = cls.__secure.encrypt(password, cls.__cursor)
         querry = "INSERT INTO users (gender, first_name, last_name, username, email, password) VALUES (%s, %s, %s, %s, %s, %s);"
         param = (gender, first_name, last_name, username, email, password)
         cls.__cursor.execute(querry, param)
@@ -84,8 +68,7 @@ class Database():
 
         user = cls.__cursor.fetchone()
 
-        # if password == cls.__secure.decrypt(user['password'], cls.__cursor):
-        if password == user['password']:
+        if password == cls.__secure.decrypt(user['password'], cls.__cursor):
             return user
         else:
             return False
@@ -118,6 +101,46 @@ class Database():
         result = cls.__cursor.fetchall()
 
         return result
+    
+    @classmethod
+    def get_projects(cls, name=None, depth=None, lat=None, long=None):
+        if name:
+            querry = f"SELECT * FROM projects WHERE name='{name}';"
+        elif depth:
+            querry = f"SELECT * FROM projects WHERE depth={depth};"
+        elif lat:
+            querry = f"SELECT * FROM projects WHERE lat={lat};"
+        elif long:
+            querry = f"SELECT * FROM projects WHERE long={long};"
+        else:
+            querry = "SELECT * FROM projects;"
+        
+        cls.__cursor.execute(querry)
+
+        result = cls.__cursor.fetchall()
+
+        # return first element if there is only one, otherwise return list
+        if len(result) == 1:
+            return result[0]
+        else:
+            return result
+
+    @classmethod
+    def add_project(cls, name, depth, lat, long):
+        querry = "INSERT INTO projects (name, depth, lat, long) VALUES (%s, %s, %s, %s);"
+        param = (name, depth, lat, long)
+        cls.__cursor.execute(querry, param)
+        cls.__bdd.commit()
+
+
+    @classmethod
+    def add_file(cls, name, date, duration, fs, path, id_project):
+        querry = "INSERT INTO files (name, date, duration, fs, path, id_project) VALUES (%s, %s, %s, %s, %s, %s);"
+        param = (name, date, duration, fs, path, id_project)
+        cls.__cursor.execute(querry, param)
+        cls.__bdd.commit()
+
+
     # def __init__(self) -> None:
 
     #     self.__USER = 'root'

@@ -102,17 +102,26 @@ def account():
 @app.route('/upload', methods=['POST'])
 def handle_upload():
     
-
-    project_name = request.values.get('project')
-    depth = request.values.get('depth')
-    lat = request.values.get('lat')
-    long = request.values.get('long')
-
-    print(request.files)
     for key, f in request.files.items():
         if key.startswith('file'):
-            f.save(os.path.join(app.config['UPLOAD_PATH'], f.filename))
+            f.save(os.path.join(app.config['UPLOAD_PATH'], secure_filename(f.filename)))
+    
+    project_name = request.values.get('project')
+    acquisition_date = request.values.get('acquisition_date')
+    depth = request.values.get('depth')
+    fs = request.values.get('fs')
+    lat = request.values.get('lat')
+    long = request.values.get('long')
+    duration = None
+
+    # Database.open_connexion()
+    # Database.add_project(project_name, acquisition_date, depth, lat, long)
+    # id_project = Database.get_projects(name=project_name)["id_project"]
+    # Database.add_file(secure_filename(f.filename), acquisition_date, duration, fs, app.config['UPLOAD_PATH'], id_project)
+    # Database.close_connexion()
+
     return '', 204
+    
 
 @app.route('/form', methods=['POST'])
 def handle_form():

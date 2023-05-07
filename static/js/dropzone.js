@@ -1,10 +1,3 @@
-const test = document.querySelector('#test');
-
-test.addEventListener('click', checkJSloaded);
-function checkJSloaded() {
-  console.log("checkJSloaded");
-}
-
 // Add event listener to the dropzone
 const dropzone = document.querySelector('#dropzone');
 dropzone.addEventListener('click', function() {

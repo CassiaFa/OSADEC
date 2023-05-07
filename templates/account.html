@@ -35,7 +35,7 @@
                     </tr>
                     <tr>
                         <td>Registration date:</td>
-                        <td>{{ user['registration_date'] }}</td>
+                        <td>{{ user['registration_date'].strftime('%Y-%m-%d') }}</td>
                     </tr>
                 </tbody>
             </table>
@@ -57,17 +57,13 @@
                         <label for="acquisition_date">Date of acquisition: *  </label>
                         <input type="datetime-local" name="acquisition_date" step="1"  required>
                     </div>
-                    <div class="element_form">
+                    <div id="coordinate" class="element_form">
                         <label for="depth">Depth: * </label>
                         <input type="number" name="depth" placeholder="Depth of acquisition*" required>
-                        <label for="fs">Frequency sample: * </label>
-                        <input type="number" name="fs" placeholder="Frequency sample (Hz) *" required>
-                    </div>
-                    <div id="coordinate" class="element_form">
                         <label for="lat">Latitude: * </label>
-                        <input type="number" name="lat" placeholder="Latitude*" required>
+                        <input type="number" step=".000001" min="-90" max="90" name="lat" placeholder="Latitude*" required>
                         <label for="long">Longitude: * </label>
-                        <input type="number" name="long" placeholder="Longitude*" required>
+                        <input type="number" step=".000001" max="180" min="-180" name="long" placeholder="Longitude*" required>
                     </div>
                     <div class="dropzone" id="dropzone">
                         <p>Drag and drop files here, or click to select files</p>

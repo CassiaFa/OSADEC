@@ -95,7 +95,7 @@ def account():
         )
         files = Database.get_files()
         Database.close_connexion()
-
+        
         return render_template('account.html', user=user, files=files)
 
 # Modify this part

@@ -45,8 +45,8 @@ class Database():
                                         database = cls.__DB
                                         )
 
-            cls.__cursor = cls.__bdd.cursor()
-    
+            cls.__cursor = cls.__bdd.cursor(dictionary=True)
+            
     @classmethod
     def close_connexion(cls):
         cls.__cursor.close()
@@ -76,9 +76,9 @@ class Database():
     def get_files(cls, id_file=None):
 
         if id_file:
-            querry = f"SELECT name, date, path, fs FROM FILES WHERE id_file={id_file};"
+            querry = f"SELECT name, date, duraton, path, fs FROM FILES WHERE id_file={id_file};"
         else:
-            querry = "SELECT id_file, name, date, path, fs FROM FILES;"
+            querry = "SELECT id_file, name, date, duration, path, fs FROM FILES;"
         
         cls.__cursor.execute(querry)
 

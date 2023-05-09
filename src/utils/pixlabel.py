@@ -160,17 +160,17 @@ class Spectrogram():
         fact_x = 1 # 1.3
         fact_y = 1 # 1.3
         y = 1500 # 512
-        # color_val_range = Range("-100:-80")
+        color_val_range = Range("-100:-80")
         
-        # min_color_val = color_val_range.min if color_val_range else None
-        # max_color_val = color_val_range.max if color_val_range else None
+        min_color_val = color_val_range.min if color_val_range else None
+        max_color_val = color_val_range.max if color_val_range else None
 
         # self.fig = plt.figure(figsize=(fact_x * 1800 / my_dpi, fact_y * y / my_dpi), dpi=my_dpi)
         self.fig = plt.figure()
         plt.pcolormesh(segment_times, frequencies, log_spectro, cmap=cmap_color)
-        # plt.clim(vmin=min_color_val, vmax=max_color_val)
+        plt.clim(vmin=min_color_val, vmax=max_color_val)
 
-        plt.ylim(15, 150) #90)
+        plt.ylim(15, 200) #150) #90)
 
         plt.axis('off')
         self.fig.tight_layout()

@@ -213,19 +213,19 @@ def main():
     print("Test database connexion ... ", end="\r")
     try:
         Database.open_connexion()
-        print("Test database connexion ... ✅")
+        print("Test database connexion ... ok ✅")
         print("Checking data ...", end="\r")
     except Exception as e:
-        print("Test database connexion ... ❌")
+        print("Test database connexion ... no ❌")
         print("The database is not connected ❌")
         print(e)
     
     
     if Database.check_database() is True:
-        print("Checking data ... ✅")
+        print("Checking data ... ok ✅")
         print("The database is connected ✅")
     else:
-        print("Checking data ... ❌")
+        print("Checking data ... no ❌")
         print("The database is not connected ❌")
     
     Database.close_connexion()

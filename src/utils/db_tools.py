@@ -140,6 +140,22 @@ class Database():
         cls.__cursor.execute(querry, param)
         cls.__bdd.commit()
 
+    @classmethod
+    def check_database(cls):
+        querry = "SHOW TABLES;"
+        cls.__cursor.execute(querry)
+        
+        if not cls.__cursor.fetchall():
+            return print("No tables in database")
+        
+        querry = "SELECT * FROM DETECTIONS;"
+        cls.__cursor.execute(querry)
+        
+        if not cls.__cursor.fetchall():
+            return print("Tables are empty")
+
+        return True
+
 
     # def __init__(self) -> None:
 
@@ -193,19 +209,26 @@ class Database():
         
 
 def main():
-    # first_name = "titi" 
-    # last_name = "titi"
-    # username = "titi"
-    # email = "titi@titi.com" 
-    # password= "tito"
 
-    username = "cassiafa"
-    password = "admin"
-    test = Database()
-    test.open_connexion()
-    print(test.check_user(username, password))
-    # test.add_user(first_name, last_name, username, email, password)
-    test.close_connexion()
+    print("Test database connexion ... ", end="\r")
+    try:
+        Database.open_connexion()
+        print("Test database connexion ... ✅")
+        print("Checking data ...", end="\r")
+    except Exception as e:
+        print("Test database connexion ... ❌")
+        print("The database is not connected ❌")
+        print(e)
+    
+    
+    if Database.check_database() is True:
+        print("Checking data ... ✅")
+        print("The database is connected ✅")
+    else:
+        print("Checking data ... ❌")
+        print("The database is not connected ❌")
+    
+    Database.close_connexion()
 
 
 

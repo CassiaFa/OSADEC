@@ -45,9 +45,10 @@ class COCO_label():
     def save(self, filename, path=None):
         # Create the dictonary with the dat of object
         dictionary = {
-                        "categories":self.categories,
+                        "type": "instances",
                         "images":self.images,
-                        "annotations":self.annotations
+                        "annotations":self.annotations,
+                        "categories":self.categories
                     }
         # Serializing json
         json_object = json.dumps(dictionary, indent=4)
@@ -94,6 +95,11 @@ class Range:
 class Spectrogram():
 
     def __init__(self, s, fs:int, img_name, nfft=2048, win_size=2048, overlap=.5, cmap_color='Greys') -> None:
+        
+        self.mw = 0.000844055830808625
+
+        butter_cutoff = 20
+        s = butter_highpass_filter(s, butter_cutoff, fs, 5)
 
         self.img_name = img_name
 
@@ -136,16 +142,16 @@ class Spectrogram():
         frequencies = frequencies[freqs_to_keep]
         spectro = spectro[freqs_to_keep, :]
 
-        # # Setting self.max_w and normalising spectro as needed
+        # Setting self.max_w and normalising spectro as needed
         # if main_ref:
-        #     # Restricting spectro frenquencies for dynamic range
-        #     freqs_to_keep = (frequencies == frequencies)
-        #     if self.min_freq_dyn:
-        #         freqs_to_keep *= self.min_freq_dyn <= frequencies
-        #     if self.max_freq_dyn:
-        #         freqs_to_keep *= frequencies <= self.max_freq_dyn
-        #     self.max_w = np.amax(spectro[freqs_to_keep, :])
-        # spectro = spectro / self.max_w
+        # Restricting spectro frenquencies for dynamic range
+        freqs_to_keep = (frequencies == frequencies)
+        # if self.min_freq_dyn:
+        #     freqs_to_keep *= self.min_freq_dyn <= frequencies
+        # if self.max_freq_dyn:
+        #     freqs_to_keep *= frequencies <= self.max_freq_dyn
+        self.max_w = np.amax(spectro[freqs_to_keep, :])
+        spectro = spectro / self.max_w
 
         # # This is needed to match end of tile n with start of tile n+1
         # if shorten:
@@ -157,16 +163,16 @@ class Spectrogram():
 
         # Ploting spectrogram
         my_dpi = 100
-        fact_x = 1 # 1.3
-        fact_y = 1 # 1.3
-        y = 1500 # 512
-        color_val_range = Range("-100:-80")
+        fact_x = 1.3 # 1.3
+        fact_y = 1.3 # 1.3
+        y = 512 # 1500
+        color_val_range = Range("-30:0")#("-100:-80")
         
         min_color_val = color_val_range.min if color_val_range else None
         max_color_val = color_val_range.max if color_val_range else None
 
-        # self.fig = plt.figure(figsize=(fact_x * 1800 / my_dpi, fact_y * y / my_dpi), dpi=my_dpi)
-        self.fig = plt.figure()
+        self.fig = plt.figure(figsize=(fact_x * 1800 / my_dpi, fact_y * y / my_dpi), dpi=my_dpi)
+        # self.fig = plt.figure()
         plt.pcolormesh(segment_times, frequencies, log_spectro, cmap=cmap_color)
         plt.clim(vmin=min_color_val, vmax=max_color_val)
 
@@ -182,18 +188,33 @@ class Spectrogram():
 
     def get_coordinates(self, start, fmin, end, fmax):
         # Get the x and y data and transform it into pixel coordinates
-        ax = plt.gca()
+        # ax = plt.gca()
         # xywh_pixels = ax.transData.transform(np.vstack([x,fmin,w,fmax]).T)
 
         # [xpix, wpix], [ypix, hpix] = xywh_pixels.T
 
         # =============== BEST ===============
-        xy_pixels = ax.transData.transform(np.vstack([start, fmin, end, fmax]).T)
-        [x1, x2], [y2, y1] = xy_pixels.T
-        y2, y1 = self.height - y2, self.height - y1
-        x, y, w, h = x1, y1, x2-x1, y2-y1
+        # xy_pixels = ax.transData.transform(np.vstack([start, fmin, end, fmax]).T)
+        # [x1, x2], [y2, y1] = xy_pixels.T
+        # y2, y1 = self.height - y2, self.height - y1
+        # x, y, w, h = x1, y1, x2-x1, y2-y1
+
+        # return x, y, w, h
+        # =====================================
+
+        # Get the x and y data and transform it into pixel coordinates
+        ax = self.fig.gca()
+
+        # Get the size of the plot in pixels
+        _, height = self.fig.get_size_inches() * self.fig.dpi
+
+        # Convert the data coordinates to pixel coordinates
+        x1, y1 = ax.transData.transform((start, fmin))
+        x2, y2 = ax.transData.transform((end, fmax))
+        x, y, w, h = x1, height - y2, x2 - x1, y2 - y1
 
         return x, y, w, h
+
         # ypix, hpix = self.height - ypix, self.height - hpix
         # print('Coordinates of the points in pixel coordinates...')
 

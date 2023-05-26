@@ -1,5 +1,5 @@
 import os
-from src.utils import Database
+from db_tools import Database
 from datetime import datetime, timedelta
 import numpy as np
 import pandas as pd
@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from scipy.io import wavfile
 import soundfile as sf
 
-from src.utils.pixlabel import Spectrogram, COCO_label
+from pixlabel import Spectrogram, COCO_label
 from matplotlib.patches import Rectangle
 
 from PIL import Image
@@ -36,7 +36,7 @@ def detections2coco():
     # Get files in database
     files = Database.get_files(id_file=None)
 
-    for f in files:
+    for f in tqdm(files):
         
         timestamp_file = datetime.timestamp(f["date"])
 
@@ -78,7 +78,7 @@ def detections2coco():
 
                 nfft = 2048*2
                 overlap = 90
-                nwin = nfft
+                nwin = 2000 # nfft
                 window = np.hamming(nwin)
                 spectro = Spectrogram(s=s, fs=fs, img_name=img_name, nfft=nfft, win_size=nwin, overlap=overlap)
 
@@ -87,8 +87,6 @@ def detections2coco():
 
                 # save image
                 spectro.save_img(path=img_path)
-
-                img_id += 1
 
                 for det in detections:
 
@@ -111,11 +109,11 @@ def detections2coco():
 
 
                     # compute coordinates of bounding box
-                    x, y, w, h = spectro.get_coordinates(det_start, fmin, det_start + duration, fmin + fmax)
+                    x, y, w, h = spectro.get_coordinates(det_start, fmin, det_start + duration, fmax)
 
                     bbox = [x, y, w, h]
 
-                    test(x, y, w, -h, os.path.join(img_path, img_name))
+                    # test(x, y, w, h, os.path.join(img_path, img_name))
 
                     # Add annotation to coco object
                     coco.add_annotation(id=annot_id, img_id=img_id, cat_id=det["id_species"], bbox=bbox)
@@ -123,6 +121,9 @@ def detections2coco():
                     annot_id += 1
 
                 spectro.close()
+                del spectro
+
+                img_id += 1
 
             # spectro start and end
             spectro_start += spectro_time

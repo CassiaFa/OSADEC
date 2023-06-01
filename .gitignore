@@ -18,3 +18,4 @@ data_annotated
 test*
 *.png
 *.zip
+visualize_data.py

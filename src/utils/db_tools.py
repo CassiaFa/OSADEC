@@ -73,12 +73,26 @@ class Database():
             return False
     
     @classmethod
-    def get_files(cls, id_file=None):
+    def get_files(cls, id_file=None, time_min=None, time_max=None):
 
         if id_file:
-            querry = f"SELECT name, date, duraton, path, fs FROM FILES WHERE id_file={id_file};"
+            if time_min and time_max:
+                querry = f"SELECT name, date, duration, path, fs FROM FILES WHERE id_file={id_file} AND date>='{time_min}' AND date<='{time_max}';"
+            elif time_min:
+                querry = f"SELECT name, date, duration, path, fs FROM FILES WHERE id_file={id_file} AND date>='{time_min}';"
+            elif time_max:
+                querry = f"SELECT name, date, duration, path, fs FROM FILES WHERE id_file={id_file} AND date<='{time_max}';"
+            else:
+                querry = f"SELECT name, date, duration, path, fs FROM FILES WHERE id_file={id_file};"
         else:
-            querry = "SELECT id_file, name, date, duration, path, fs FROM FILES;"
+            if time_min and time_max:
+                querry = f"SELECT id_file, name, date, duration, path, fs FROM FILES WHERE date>='{time_min}' AND date<='{time_max}';"
+            elif time_min:
+                querry = f"SELECT id_file, name, date, duration, path, fs FROM FILES WHERE date>='{time_min}';"
+            elif time_max:
+                querry = f"SELECT id_file, name, date, duration, path, fs FROM FILES WHERE date<='{time_max}';"
+            else:
+                querry = "SELECT id_file, name, date, duration, path, fs FROM FILES;"
         
         cls.__cursor.execute(querry)
 

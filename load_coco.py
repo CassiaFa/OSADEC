@@ -2,6 +2,10 @@ import os
 import json
 from random import sample
 
+from PIL import Image
+import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
+
 # function to load coco annotations
 def load_coco_annotations(coco_file):
     with open(coco_file, 'r') as f:
@@ -30,7 +34,7 @@ def link_annotations(data):
     return file_list
 
 def main():
-    data = load_coco_annotations('./data_annotated/DCLDE_2015.json')
+    data = load_coco_annotations('./data_annotated/DCLDE_2015_v2.json')
     summary = link_annotations(data)
 
     label_6_only = [x for x in summary if 6 in x['categories'] and 7 not in x['categories']]
@@ -54,12 +58,17 @@ def main():
     id_an_train = []
 
     for item in train_list:
+        bbox = []
         train['images'].append(data['images'][item['id']])
         id_im_train.append(item['id'])
 
         for annot_id in item['annotations']:
             train['annotations'].append(data['annotations'][annot_id])
             id_an_train.append(annot_id)
+            bbox.append(data['annotations'][annot_id]['bbox'])
+
+        # verif_by_plot(data['images'][item['id']]['file_name'], bbox=bbox)
+        
         
     json_object = json.dumps(train, indent=4)
     with open('./data_annotated/train.json', "w") as f:
@@ -87,8 +96,26 @@ def round_values():
         # load coco annotations
         data = load_coco_annotations(os.path.join(path, i))
         
-        
 
+def verif_by_plot(img_name, bbox):
+
+    img_path = os.path.join("./data_annotated", img_name)
+
+    img = Image.open(img_path)
+
+    fig, ax = plt.subplots()
+    plt.imshow(img)
+    plt.axis("off")
+
+    for b in bbox:
+        rect = Rectangle((b[0], b[1]), b[2], b[3], edgecolor="red", facecolor="none", lw=2)
+        ax.add_patch(rect)
+    
+    plt.show()
+
+    input("Press Enter to continue...")
+
+    plt.close(fig=fig)
  
 
 if __name__ == '__main__':

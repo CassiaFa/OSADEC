@@ -75,12 +75,26 @@ class Database():
 
     
     @classmethod
-    def get_files(cls, id_file=None):
+    def get_files(cls, id_file=None, time_min=None, time_max=None):
 
         if id_file:
-            querry = f"SELECT name, date, path FROM FILES WHERE id_file={id_file};"
+            if time_min and time_max:
+                querry = f"SELECT name, date, duration, path, fs FROM FILES WHERE id_file={id_file} AND date>='{time_min}' AND date<='{time_max}';"
+            elif time_min:
+                querry = f"SELECT name, date, duration, path, fs FROM FILES WHERE id_file={id_file} AND date>='{time_min}';"
+            elif time_max:
+                querry = f"SELECT name, date, duration, path, fs FROM FILES WHERE id_file={id_file} AND date<='{time_max}';"
+            else:
+                querry = f"SELECT name, date, duration, path, fs FROM FILES WHERE id_file={id_file};"
         else:
-            querry = "SELECT name, date, path FROM FILES;"
+            if time_min and time_max:
+                querry = f"SELECT id_file, name, date, duration, path, fs FROM FILES WHERE date>='{time_min}' AND date<='{time_max}';"
+            elif time_min:
+                querry = f"SELECT id_file, name, date, duration, path, fs FROM FILES WHERE date>='{time_min}';"
+            elif time_max:
+                querry = f"SELECT id_file, name, date, duration, path, fs FROM FILES WHERE date<='{time_max}';"
+            else:
+                querry = "SELECT id_file, name, date, duration, path, fs FROM FILES;"
         
         cls.__cursor.execute(querry)
 
@@ -89,12 +103,19 @@ class Database():
         return result
     
     @classmethod
-    def get_detections(cls, id_file=None):
+    def get_detections(cls, id_file=None, time_min=None, time_max=None):
 
         if id_file:
-            querry = f"SELECT start, stop, id_species FROM DETECTIONS WHERE id_file={id_file};"
+            if time_min and time_max:
+                querry = f"SELECT start, stop, id_species FROM DETECTIONS WHERE id_file={id_file} AND START>='{time_min}' AND STOP<='{time_max}';"
+            elif time_min:
+                querry = f"SELECT start, stop, id_species FROM DETECTIONS WHERE id_file={id_file} AND START>='{time_min}';"
+            elif time_max:
+                querry = f"SELECT start, stop, id_species FROM DETECTIONS WHERE id_file={id_file} AND STOP<='{time_max}';"
+            else:
+                querry = f"SELECT start, stop, id_species FROM DETECTIONS WHERE id_file={id_file};"
         else:
-            querry = "SELECT start, stop, id_species FROM DETECTIONS;"
+            querry = "SELECT start, stop, id_file, id_species FROM DETECTIONS;"
         
         cls.__cursor.execute(querry)
 
@@ -179,33 +200,17 @@ class Database():
 
     #         self.__cursor = self.__bdd.cursor()
     
-    # def close_connexion(self):
-    #     self.__cursor.close()
-    #     self.__bdd.close()
-    #     self.__cursor = None
+    @classmethod
+    def get_categories(cls):
+        querry = f"SELECT id_species, english_name FROM SPECIES"
+
+        cls.__cursor.execute(querry)
+
+        result = cls.__cursor.fetchall()
+
+        return result
     
-    # def add_user(self, first_name, last_name, username, email, password):
-    #     password = self.__secure.encrypt(password, self.__cursor)
-    #     querry = "INSERT INTO users (first_name, last_name, username, email, password) VALUES (%s, %s, %s, %s, %s);"
-    #     param = (first_name, last_name, username, email, password)
-    #     self.__cursor.execute(querry, param)
-    #     self.__bdd.commit()
-
-    # def check_user(self, username, password):
-    #     querry = f"SELECT password FROM users WHERE username='{username}';"
-    #     self.__cursor.execute(querry)
-    #     pwd = self.__cursor.fetchone()[0]
-
-    #     if password == self.__secure.decrypt(pwd, self.__cursor):
-    #         return True
-    #     else:
-    #         return False
-
-
-    # def test(self, txt):
-    #     toto = self.__secure.encrypt(txt, self.__cursor)
-    #     print(toto)
-
+   
         
 
 def main():

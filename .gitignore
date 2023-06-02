@@ -8,9 +8,14 @@ images
 data
 data_img
 weight
+data_anotated
+data_annotated
 
 
 # Files
 .env
 *.wav
 test*
+*.png
+*.zip
+visualize_data.py

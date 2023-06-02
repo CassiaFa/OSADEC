@@ -149,7 +149,7 @@ def compute_spectro(filepath, start, stop, fs, img_name, img_path):
 
     return spectro
 
-def get_results(result, spectro, detection, spectro_start):
+def get_results(result, spectro, detection, spectro_start, class_names):
 
     """
     Function to check and get the results of the detection.
@@ -174,8 +174,16 @@ def get_results(result, spectro, detection, spectro_start):
 
     """
 
-    for i in result:
-        if i.shape[0] == 0:
+    for i, name in enumerate(class_names):
+
+        Database.open_connexion()
+
+        # Get the id of the class
+        id_class = Database.get_categories(english_name=name)["id_species"]
+
+        Database.close_connexion()
+
+        if result[i].shape[0] == 0:
             continue
         else:
             for d in i:
@@ -185,7 +193,16 @@ def get_results(result, spectro, detection, spectro_start):
 
                 det_start, det_end =  spectro_start + timedelta(seconds=det_start), spectro_start + timedelta(seconds=det_end)
 
-                detection.append(det_start, det_end, fmin, fmax, confidence)
+                event = {
+                    "id_species": id_class,
+                    "start": det_start,
+                    "end": det_end,
+                    "fmin": fmin,
+                    "fmax:": fmax,
+                    "confidence": confidence
+                }
+
+                detection.append(event)
 
     return detection
 
@@ -221,6 +238,11 @@ def pipeline(filepath: str, date: datetime, duration: int, fs: int):
 
     # Folder of temporary image
     i_path = "./tmp"
+
+    # Check if folder exists
+    if not os.path.exists(i_path):
+        os.makedirs(i_path)
+
     # Name of temporary image
     img_name = "tmp.png"
 
@@ -261,7 +283,7 @@ def pipeline(filepath: str, date: datetime, duration: int, fs: int):
 
         date_start = datetime.fromtimestamp(spectro_start/fs + timestamp_file)
 
-        detection = get_results(result, spectro, detection, date_start)
+        detection = get_results(result, spectro, detection, date_start, model.classes)
 
         # Close the spectro figure
         spectro.close()

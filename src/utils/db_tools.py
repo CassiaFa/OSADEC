@@ -201,8 +201,16 @@ class Database():
     #         self.__cursor = self.__bdd.cursor()
     
     @classmethod
-    def get_categories(cls):
-        querry = f"SELECT id_species, english_name FROM SPECIES"
+    def get_categories(cls, id_species=None, english_name=None, latin_name=None):
+        
+        if id_species:
+            querry = f"SELECT id_species, english_name FROM SPECIES WHERE id_species={id_species};"
+        elif english_name:
+            querry = f"SELECT id_species, english_name FROM SPECIES WHERE english_name='{english_name}';"
+        elif latin_name:
+            querry = f"SELECT id_species, english_name FROM SPECIES WHERE latin_name='{latin_name}';"
+        else:
+            querry = "SELECT id_species, english_name FROM SPECIES"
 
         cls.__cursor.execute(querry)
 

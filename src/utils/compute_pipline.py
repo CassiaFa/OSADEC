@@ -1,172 +1,84 @@
 import os
-from db_tools import Database
+import errno
+import re
+
 from datetime import datetime, timedelta
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
-from scipy.io import wavfile
+from matplotlib.patches import Rectangle
 import soundfile as sf
 
-from pixlabel import Spectrogram, COCO_label
-from matplotlib.patches import Rectangle
+from db_tools import Database
+from pixlabel import Spectrogram
 
 from PIL import Image
-
-from tqdm import tqdm
 
 # MMDET imports
 import mmcv
 from mmcv.runner import load_checkpoint
-
 from mmdet.apis import inference_detector
 from mmdet.models import build_detector
 
-def detections2coco():
 
-    img_path = "./data_anotated"
+def plot_image_bbox(x, y, w, h, img_path):
     
-    if not os.path.exists(img_path):
-        os.makedirs(img_path)
+    """
+    Plots an image with a bounding box overlayed on top of it.
 
-    img_id = 0
-    annot_id = 0
+    Args:
+        x (int): The x-coordinate of the top-left corner of the bounding box.
+        y (int): The y-coordinate of the top-left corner of the bounding box.
+        w (int): The width of the bounding box.
+        h (int): The height of the bounding box.
+        img_path (str): The name of the image file to display.
 
-    coco = COCO_label()
+    Returns:
+        None
 
-    # open database connexion
-    Database.open_connexion()
+    Example:
+        >>> plot_image_bbox(50, 50, 100, 100, "example.png")
 
-    # Add categories to coco object
-    for cat in Database.get_categories():
-        coco.add_categorie(id=cat["id_species"], name=cat["english_name"])
-
-    # Get files in database
-    files = Database.get_files(id_file=None)
-
-    for f in tqdm(files):
-        
-        timestamp_file = datetime.timestamp(f["date"])
-
-        end_file = f["date"] + timedelta(seconds=f["duration"])
-
-        # size of file loaded in seconds
-        sec = 300
-        spectro_time = timedelta(seconds=sec) # duration of spectro
-        
-        # spectro start and end
-        spectro_start = f["date"]
-        spectro_end = spectro_start + spectro_time
-
-        while spectro_end <= end_file - spectro_time :
-
-            time_min = spectro_start.strftime("%Y-%m-%d %H:%M:%S")
-            time_max = spectro_end.strftime("%Y-%m-%d %H:%M:%S")
-
-            detections = Database.get_detections(id_file=f["id_file"], time_min=time_min, time_max=time_max)
-
-            # if no detection continue the loop
-            if not detections:
-                # spectro start and end
-                spectro_start += spectro_time
-                spectro_end += spectro_time
-                continue
-            else:
-
-                # spectro start and end
-                sample_start = int(datetime.timestamp(spectro_start) - timestamp_file) * f["fs"]
-                sample_end =  int(datetime.timestamp(spectro_end) - timestamp_file) * f["fs"]
-                
-                # load sound file
-                s, fs = sf.read(os.path.join('data',f["name"]), start=sample_start, stop=sample_end)
-
-                # image name
-                fn_split = f["name"].split("_")
-                img_name = "_".join(fn_split[:4]) + "_" + spectro_start.strftime("%y%m%d_%H%M%S")  + ".png"
-
-                nfft = 2048*2
-                overlap = 90
-                nwin = 2000 # nfft
-                window = np.hamming(nwin)
-                spectro = Spectrogram(s=s, fs=fs, img_name=img_name, nfft=nfft, win_size=nwin, overlap=overlap)
-
-                # Add image to coco object
-                coco.add_image(id=img_id, width=spectro.width, height=spectro.height, file_name=img_name)
-
-                # save image
-                spectro.save_img(path=img_path)
-
-                for det in detections:
-
-                    # duration of detection
-                    # duration = det["stop"] - det["start"]
-                    
-                    # Frequency limit of signal
-                    if det["id_species"] == 6:
-                        # blue whale
-                        fmin = 35 # 27
-                        fmax= 150 # 75
-                    elif det["id_species"] == 7:
-                        # fine whale 
-                        fmin = 40 # 35
-                        fmax = 75 # 75
-                    
-
-                    duration = 5
-                    det_start = (det["start"] - spectro_start).total_seconds() - 1
-
-
-                    # compute coordinates of bounding box
-                    x, y, w, h = spectro.get_coordinates(det_start, fmin, det_start + duration, fmax)
-
-                    bbox = [x, y, w, h]
-
-                    # test(x, y, w, h, os.path.join(img_path, img_name))
-
-                    # Add annotation to coco object
-                    coco.add_annotation(id=annot_id, img_id=img_id, cat_id=det["id_species"], bbox=bbox)
-                    
-                    annot_id += 1
-
-                spectro.close()
-                del spectro
-
-                img_id += 1
-
-            # spectro start and end
-            spectro_start += spectro_time
-            spectro_end += spectro_time
-
-    Database.close_connexion()
-
-    coco.save("DCLDE_2015.json", path=img_path)
-
-    print("Task Done !")
-
-
-def plot_image_bbox(x, y, w, h, img_name="test.png"):
+    """
+     
     fig, ax = plt.subplots()
 
     rect = Rectangle((x,y), w, h, linewidth=2, edgecolor='r', facecolor='none')
     
-    img = Image.open(img_name)
+    img = Image.open(img_path)
     plt.imshow(np.flipud(img), origin="lower")
     ax.add_patch(rect)
     plt.show()
 
-def load_detector():
-    """Function to detect objects in an image.
-    
-    Keyword arguments:
-    img_path -- Path to the image.
-    Return: result -- List of detected objects.
+def load_detector(config_path=None, checkpoint_path=None):
     """
+    Loads the object detector from the specified config and checkpoint.
     
-    # Choose to use a config and initialize the detector
-    config_file = '/home/fabio/Documents/fabito_bueno/mmdetection/configs/fabio_custom_config.py'
+    Args:
+        config_path : (str) Path to the config file. By default, it is set to None.
+        checkpoint_path : (str) Path to the checkpoint file. By default, it is set to None.
+    Returns:
+        model : (torch.nn.Module) The loaded model
 
-    # Setup a checkpoint file to load
-    # checkpoint_file = './exp/exp1_paulobis/epoch_12.pth'
-    checkpoint_file = '/home/fabio/Documents/fabito_bueno/mmdetection/exp/exp1/epoch_24/epoch_12.pth'
+    Example:
+        >>> config_path = "./example/config.py"
+        >>> checkpoint = "./example/checkpoint.pth"
+        >>> model = load_detector(config_path, checkpoint)
+        >>> assert isinstance(model, torch.nn.Module)
+
+    """
+
+    # TODO: change config_path and checkpoint_path
+    if not config_path:
+        # Choose to use a config and initialize the detector
+        config_file = '/home/fabio/Documents/fabito_bueno/mmdetection/configs/fabio_custom_config.py'
+    else:
+        config_file = config_path
+
+    if not checkpoint_path:
+        checkpoint_file = '/home/fabio/Documents/fabito_bueno/mmdetection/exp/exp1/epoch_24/epoch_12.pth'
+    else:
+        # Setup a checkpoint file to load
+        checkpoint_file = '/home/fabio/Documents/fabito_bueno/mmdetection/exp/exp1/epoch_24/epoch_12.pth'
 
     # Set the device to be used for evaluation
     device='cpu'
@@ -197,6 +109,31 @@ def load_detector():
     return model
 
 def compute_spectro(filepath, start, stop, fs, img_name, img_path):
+    
+    """
+    Computes the spectrogram of the sound file given by `filepath`, from `start` to `stop` seconds, 
+    with a sampling rate of `fs` Hz, and saves the resulting image with name `img_name` at `img_path`.
+
+    Args:
+        filepath: A string representing the path to the sound file to compute the spectrogram from.
+        start: A float representing the starting time (in seconds) from which to compute the spectrogram.
+        stop: A float representing the stopping time (in seconds) until which to compute the spectrogram.
+        fs: An integer representing the sampling rate (in Hz) of the sound file.
+        img_name: A string representing the name of the image file to save the spectrogram to.
+        img_path: A string representing the path to save the image file to.
+
+    Returns:
+        A Spectrogram object representing the spectrogram of the sound file.
+
+    Example:
+        >>> import os
+        >>> from pixlabel import Spectrogram
+        >>> img_path = os.path.join(os.getcwd(), 'spectrogram.png')
+        >>> spectro = compute_spectro('example.wav', 0, 5, 44100, 'spectrogram.png', img_path)
+        >>> assert os.path.exists(img_path)
+        >>> assert isinstance(spectro, Spectrogram)
+
+    """
 
     # load sound file
     s, fs = sf.read(filepath, start=start, stop=stop)
@@ -214,14 +151,27 @@ def compute_spectro(filepath, start, stop, fs, img_name, img_path):
 
 def get_results(result, spectro, detection, spectro_start):
 
-    """Function to get the results of the detection.
+    """
+    Function to check and get the results of the detection.
     
-    Keyword arguments:
-    result -- List of detected objects.
-    spectro -- Spectrogram object.
-    detection -- List of detected objects.
-    spectro_start -- Start time of spectrogram
-    Return: detection -- List of detected objects.
+    Args:
+        result : (list) List of numpy arrays representing the results of the detection.
+        spectro : (Spectrogram) Spectrogram object.
+        detection : (list) List of detected objects.
+        spectro_start : (datetime) Start time of spectrogram.
+
+    Returns:
+        detection : (list) List of detected objects.
+
+    Example:
+        >>> import numpy as np
+        >>> from pixlabel import Spectrogram
+        >>> detection = []
+        >>> spectro_start = 0
+        >>> result = [np.array([[1,2,3,4,5],[6,7,8,9,10]]), np.array([[1,2,3,4,5],[6,7,8,9,10]])]
+        >>> spectro = Spectrogram(s=np.array([[1,2,3,4,5],[6,7,8,9,10]]), fs=44100, img_name="spectrogram.png")
+        >>> detection = get_results(result, spectro, detection, spectro_start)
+
     """
 
     for i in result:
@@ -240,19 +190,33 @@ def get_results(result, spectro, detection, spectro_start):
     return detection
 
 
-def pipeline(filepath, date, duration, fs):
-
-    """Detection of call in wave files.
-    
-    Keyword arguments:
-    filepath -- Path to the audio file.
-    date -- Acquisition date of file.
-    duration -- Duration of file.
-    fs -- Sampling frequency of file.
-
-    Return: None
+def pipeline(filepath: str, date: datetime, duration: int, fs: int):
     """
-    
+    Runs a pipeline to detect objects in a spectrogram generated from a given audio file.
+
+    Args:
+        filepath: A string representing the path to the audio file.
+        date: A datetime object representing the start time of the audio file.
+        duration: An integer representing the duration of the audio file in seconds.
+        fs: An integer representing the frequency of the audio file.
+
+    Returns:
+        A list of dictionaries, where each dictionary corresponds to a detected object and contains the following keys:
+        - "class": the class of the object
+        - "score": the confidence score of the detection
+        - "bbox": the bounding box coordinates of the detection
+
+    Raises:
+        FileNotFoundError: If the file at the given filepath does not exist.
+
+    Example:
+        >>> filepath = "path/to/audio/file.wav"
+        >>> date = datetime(2022, 1, 1, 0, 0, 0)
+        >>> duration = 3600
+        >>> fs = 44100
+        >>> results = pipeline(filepath, date, duration, fs)
+    """
+
     model = load_detector()
 
     # Folder of temporary image
@@ -263,8 +227,7 @@ def pipeline(filepath, date, duration, fs):
     detection = []
 
     if not os.path.exists(filepath):
-        print("File not found")
-        return None
+        raise  FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), filepath)
     
     # timestamp of file
     timestamp_file = datetime.timestamp(date)
@@ -332,51 +295,14 @@ def pipeline(filepath, date, duration, fs):
 
     if os.path.exists(img_path):
         os.remove(img_path)
-    
 
+    return detection
 
-
-
-def plot2Image(fig):
-    import io
-    from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-    from PIL import Image
-
-    # Create a Matplotlib canvas
-    canvas = FigureCanvas(fig)
-
-    # Render the plot on the canvas
-    canvas.draw()
-
-    # Get the RGB buffer from the canvas
-    buffer = canvas.buffer_rgba()
-
-    # Convert the buffer to a read-only bytes-like object
-    buffer = memoryview(buffer).toreadonly()
-
-    # Determine the image mode based on the number of channels
-    n_channels = len(buffer) // (canvas.get_width_height()[0] * canvas.get_width_height()[1])
-    mode = "RGBA" if n_channels == 4 else "RGB"
-
-    # Convert the buffer to a PIL image
-    image = Image.frombuffer(mode, canvas.get_width_height(), buffer, 'raw', mode, 0, 1)
-
-    # Save or display the PIL image as needed
-    image.show()
-
-    # image = Image.frombytes('RGB', canvas.get_width_height(), buffer, 'raw', 'RGBA', 0, 1)
-    
-    # test = Image.frombytes('RGB', fig.canvas.get_width_height(), fig.canvas.tostring_rgb())
-
-    return image
 
 
 if __name__ == "__main__":
-    import re
-    from datetime import datetime
-    # detections2coco()
 
-    filename = "/home/fabio/Documents/OSADEC/data/CINMS_17_B_d03_111202_012730.d100.x.wav"
+    filename = "/example/example.wav"
     
     date =''.join(re.split('[_ .]',os.path.split(filename)[-1])[4:6])
     date = datetime.strptime('111202012730', '%y%m%d%H%M%S')
@@ -386,7 +312,7 @@ if __name__ == "__main__":
     fs = f.samplerate
     duration = f.frames / fs
 
-    # detection(filename, date, duration, fs)
+    results = pipeline(filename, date, duration, fs)
 
 
 

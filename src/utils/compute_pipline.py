@@ -36,7 +36,7 @@ def plot_image_bbox(x, y, w, h, img_path):
         None
 
     Example:
-        >>> plot_image_bbox(50, 50, 100, 100, "example.png")
+        >>> plot_image_bbox(1872.808, 444.459, 38.615, 164.912, "example/example.png")
 
     """
      
@@ -60,25 +60,24 @@ def load_detector(config_path=None, checkpoint_path=None):
         model : (torch.nn.Module) The loaded model
 
     Example:
-        >>> config_path = "./example/config.py"
-        >>> checkpoint = "./example/checkpoint.pth"
-        >>> model = load_detector(config_path, checkpoint)
-        >>> assert isinstance(model, torch.nn.Module)
+        >>> config_path = "../../models/lowfreq_faster-rcnn_config.py"
+        >>> checkpoint_path = "../../models/latest_lowfreq_faster-rcnn.pth"
+        >>> model = load_detector(config_path, checkpoint_path)
+        >>> assert isinstance(model, mmdet.models.detectors.faster_rcnn.FasterRCNN)
 
     """
 
-    # TODO: change config_path and checkpoint_path
+    # Config path
     if not config_path:
-        # Choose to use a config and initialize the detector
-        config_file = '/home/fabio/Documents/fabito_bueno/mmdetection/configs/fabio_custom_config.py'
+        config_file = "models/lowfreq_faster-rcnn_config.py"
     else:
         config_file = config_path
 
+    # Checkpoint path
     if not checkpoint_path:
-        checkpoint_file = '/home/fabio/Documents/fabito_bueno/mmdetection/exp/exp1/epoch_24/epoch_12.pth'
+        checkpoint_file = "models/latest_lowfreq_faster-rcnn.pth"
     else:
-        # Setup a checkpoint file to load
-        checkpoint_file = '/home/fabio/Documents/fabito_bueno/mmdetection/exp/exp1/epoch_24/epoch_12.pth'
+        checkpoint_file = checkpoint_path
 
     # Set the device to be used for evaluation
     device='cpu'
@@ -324,17 +323,24 @@ def pipeline(filepath: str, date: datetime, duration: int, fs: int):
 
 if __name__ == "__main__":
 
-    filename = "/example/example.wav"
+    import doctest
+    import mmdet
+    import matplotlib
+    matplotlib.use('qtagg')
+
+    doctest.testmod()
+
+    # filename = "/example/example.wav"
     
-    date =''.join(re.split('[_ .]',os.path.split(filename)[-1])[4:6])
-    date = datetime.strptime('111202012730', '%y%m%d%H%M%S')
+    # date =''.join(re.split('[_ .]',os.path.split(filename)[-1])[4:6])
+    # date = datetime.strptime('111202012730', '%y%m%d%H%M%S')
 
-    f = sf.SoundFile(filename)
+    # f = sf.SoundFile(filename)
 
-    fs = f.samplerate
-    duration = f.frames / fs
+    # fs = f.samplerate
+    # duration = f.frames / fs
 
-    results = pipeline(filename, date, duration, fs)
+    # results = pipeline(filename, date, duration, fs)
 
 
 

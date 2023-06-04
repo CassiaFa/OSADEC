@@ -1,10 +1,17 @@
 import os
 from src.utils import *
 from dotenv import load_dotenv
+from src.utils.compute_pipline import pipeline
 
 from flask import Flask, render_template, request, send_from_directory
 from werkzeug.utils import secure_filename
 from flask_dropzone import Dropzone
+
+from datetime import datetime
+import time
+import json
+
+import soundfile as sf
 
 load_dotenv()
 
@@ -102,18 +109,74 @@ def account():
 @app.route('/upload', methods=['POST'])
 def handle_upload():
     
+    # Step 1: Upload file
+
+    # file_progress = 0
+    # total_steps = 4
+    # progress_data = {'file': file_progress}
+
+
     for key, f in request.files.items():
+        file_name = secure_filename(f.filename)
+        file_path = os.path.join(app.config['UPLOAD_PATH'], file_name)
         if key.startswith('file'):
-            f.save(os.path.join(app.config['UPLOAD_PATH'], secure_filename(f.filename)))
+            f.save(file_path)
+
+            print(f"{file_path} uploaded")
+
+    # progress_data['file'] = 1
     
+    # Step 2: Write file information in the database
+
     project_name = request.values.get('project')
     acquisition_date = request.values.get('acquisition_date')
     depth = request.values.get('depth')
-    fs = request.values.get('fs')
     lat = request.values.get('lat')
     long = request.values.get('long')
-    duration = None
 
+    s = sf.SoundFile(file_path)
+    fs = s.samplerate
+    duration = s.frames / fs
+
+    Database.open_connexion()
+
+    # Database.add_project(project_name, depth, lat, long)
+    
+    id_project = Database.get_projects(name=project_name)["id_project"]
+    
+    print(f"Project {project_name} added to database with id {id_project}")
+    
+    # Database.add_file(file_name, acquisition_date, duration, fs, app.config['UPLOAD_PATH'], id_project)
+
+    id_file = Database.get_files(name=file_name)["id_file"]
+
+    print(f"File {file_name} added to database with id {id_file}")
+
+    # progress_data['write_db'] = 1
+    
+    # send_progress(progress_data)  # Send progress update to frontend
+
+    # Step 3: Compute the detection pipeline on the file
+
+    print("Pipeline started")
+    result = pipeline(file_path, datetime.strptime(acquisition_date, '%Y-%m-%dT%H:%M:%S'), duration, fs)
+
+    # progress_data['pipeline'] = 1
+    # send_progress(progress_data)  # Send progress update to frontend
+
+    # Step 4: Write the result of detection to the database
+    
+    for det in result:
+        Database.add_detection(det["start"], det["end"], det["confidence"], det["id_species"], id_file)
+
+    if len(result) > 0:
+        print("Detections added to database")
+    else:
+        print("No detections")
+    # progress_data['write_detection'] = 1
+    # send_progress(progress_data)  # Send progress update to frontend
+
+    Database.close_connexion()
     # Database.open_connexion()
     # Database.add_project(project_name, acquisition_date, depth, lat, long)
     # id_project = Database.get_projects(name=project_name)["id_project"]

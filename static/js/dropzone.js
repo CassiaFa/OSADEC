@@ -67,13 +67,21 @@ function handleFileSelect() {
 }
 
 function handleSubmit(event) {
+
   event.preventDefault();
+  
   console.log("handleSubmit");
   console.log(selectedFile);
+  
   if (validateForm()) {
+    const formData = new FormData(event.target); // Get form data
+    console.log(formData); // Log form data
+
     if (selectedFile) {
+      formData.append('file', selectedFile); // Add file to form data
       console.log('File selected');
-      uploadFile(selectedFile);
+      console.log(formData); // Log form data
+      uploadFile(formData); // Send form data with file
     } else {
       // Handle case where no file is selected
       console.log('No file selected');
@@ -89,11 +97,7 @@ function handleSubmit(event) {
 // ================
 // UPLOAD FILE
 // ================
-function uploadFile(file) {
-  const formData = new FormData();
-  formData.append('file', file);
-
-  console.log(file);
+function uploadFile(formData) {
   console.log(formData);
   
   fetch('/upload', {

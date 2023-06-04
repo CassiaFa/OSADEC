@@ -75,7 +75,7 @@ class Database():
 
     
     @classmethod
-    def get_files(cls, id_file=None, time_min=None, time_max=None):
+    def get_files(cls, id_file=None, time_min=None, time_max=None, name=None):
 
         if id_file:
             if time_min and time_max:
@@ -86,6 +86,15 @@ class Database():
                 querry = f"SELECT name, date, duration, path, fs FROM FILES WHERE id_file={id_file} AND date<='{time_max}';"
             else:
                 querry = f"SELECT name, date, duration, path, fs FROM FILES WHERE id_file={id_file};"
+        elif name:
+            if time_min and time_max:
+                querry = f"SELECT id_file, date, duration, path, fs FROM FILES WHERE name='{name}' AND date>='{time_min}' AND date<='{time_max}';"
+            elif time_min:
+                querry = f"SELECT id_file, date, duration, path, fs FROM FILES WHERE name='{name}' AND date>='{time_min}';"
+            elif time_max:
+                querry = f"SELECT id_file, date, duration, path, fs FROM FILES WHERE name='{name}' AND date<='{time_max}';"
+            else:
+                querry = f"SELECT id_file, date, duration, path, fs FROM FILES WHERE name='{name}';"
         else:
             if time_min and time_max:
                 querry = f"SELECT id_file, name, date, duration, path, fs FROM FILES WHERE date>='{time_min}' AND date<='{time_max}';"
@@ -99,8 +108,13 @@ class Database():
         cls.__cursor.execute(querry)
 
         result = cls.__cursor.fetchall()
+        
+        # return first element if there is only one, otherwise return list
+        if len(result) == 1:
+            return result[0]
+        else:
+            return result
 
-        return result
     
     @classmethod
     def get_detections(cls, id_file=None, time_min=None, time_max=None):
@@ -126,15 +140,15 @@ class Database():
     @classmethod
     def get_projects(cls, name=None, depth=None, lat=None, long=None):
         if name:
-            querry = f"SELECT * FROM projects WHERE name='{name}';"
+            querry = f"SELECT * FROM PROJECTS WHERE name='{name}';"
         elif depth:
-            querry = f"SELECT * FROM projects WHERE depth={depth};"
+            querry = f"SELECT * FROM PROJECTS WHERE depth={depth};"
         elif lat:
-            querry = f"SELECT * FROM projects WHERE lat={lat};"
+            querry = f"SELECT * FROM PROJECTS WHERE latitude={lat};"
         elif long:
-            querry = f"SELECT * FROM projects WHERE long={long};"
+            querry = f"SELECT * FROM PROJECTS WHERE longitude={long};"
         else:
-            querry = "SELECT * FROM projects;"
+            querry = "SELECT * FROM PROJECTS;"
         
         cls.__cursor.execute(querry)
 
@@ -148,16 +162,8 @@ class Database():
 
     @classmethod
     def add_project(cls, name, depth, lat, long):
-        querry = "INSERT INTO projects (name, depth, lat, long) VALUES (%s, %s, %s, %s);"
+        querry = "INSERT INTO PROJECTS (name, depth, latitude, longitude) VALUES (%s, %s, %s, %s);"
         param = (name, depth, lat, long)
-        cls.__cursor.execute(querry, param)
-        cls.__bdd.commit()
-
-
-    @classmethod
-    def add_file(cls, name, date, duration, fs, path, id_project):
-        querry = "INSERT INTO files (name, date, duration, fs, path, id_project) VALUES (%s, %s, %s, %s, %s, %s);"
-        param = (name, date, duration, fs, path, id_project)
         cls.__cursor.execute(querry, param)
         cls.__bdd.commit()
 
@@ -178,27 +184,6 @@ class Database():
         return True
 
 
-    # def __init__(self) -> None:
-
-    #     self.__USER = 'root'
-    #     self.__PWD = 'root'
-    #     self.__HOST = 'localhost'
-    #     self.__PORT = '3306'
-    #     self.__DB = 'USER_DB'
-    #     self.__cursor = None
-    #     self.__secure = Encryptor()
-
-    # def open_connexion(self):
-    #     if not self.__cursor:
-    #         self.__bdd = mysqlpy.connect(
-    #                                     user = self.__USER,
-    #                                     password = self.__PWD,
-    #                                     host = self.__HOST,
-    #                                     port = self.__PORT,
-    #                                     database = self.__DB
-    #                                     )
-
-    #         self.__cursor = self.__bdd.cursor()
     
     @classmethod
     def get_categories(cls, id_species=None, english_name=None, latin_name=None):
@@ -216,7 +201,26 @@ class Database():
 
         result = cls.__cursor.fetchall()
 
-        return result
+        if len(result) == 1:
+            return result[0]
+        else:
+            return result
+    
+
+    @classmethod
+    def add_file(cls, name, date, duration, fs, path, id_project):
+        querry = "INSERT INTO FILES (name, date, duration, fs, path, id_project) VALUES (%s, %s, %s, %s, %s, %s);"
+        param = (name, date, duration, fs, path, id_project)
+        cls.__cursor.execute(querry, param)
+        cls.__bdd.commit()
+
+
+    @classmethod
+    def add_detection(cls, start, stop, confidence, id_species, id_file):
+        querry = "INSERT INTO DETECTIONS (start, stop, confidence ,id_file, id_species) VALUES (%s, %s, %s, %s, %s);"
+        param = (start, stop, float(confidence), id_file, id_species)
+        cls.__cursor.execute(querry, param)        
+        cls.__bdd.commit()
     
    
         

@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 import soundfile as sf
 
-from db_tools import Database
-from pixlabel import Spectrogram
+from .db_tools import Database
+from .pixlabel import Spectrogram
 
 from PIL import Image
 
@@ -175,17 +175,17 @@ def get_results(result, spectro, detection, spectro_start, class_names):
 
     for i, name in enumerate(class_names):
 
-        Database.open_connexion()
+        # Database.open_connexion()
 
         # Get the id of the class
         id_class = Database.get_categories(english_name=name)["id_species"]
 
-        Database.close_connexion()
+        # Database.close_connexion()
 
         if result[i].shape[0] == 0:
             continue
         else:
-            for d in i:
+            for d in result[i]:
                 x, y, x2, y2, confidence = d
 
                 det_start, det_end, fmin, fmax = spectro.get_values(x, y, x2 - x, y2 - y)
@@ -194,8 +194,8 @@ def get_results(result, spectro, detection, spectro_start, class_names):
 
                 event = {
                     "id_species": id_class,
-                    "start": det_start,
-                    "end": det_end,
+                    "start": datetime.strftime(det_start, "%Y-%m-%d %H:%M:%S"),
+                    "end": datetime.strftime(det_end, "%Y-%m-%d %H:%M:%S"),
                     "fmin": fmin,
                     "fmax:": fmax,
                     "confidence": confidence
@@ -245,6 +245,8 @@ def pipeline(filepath: str, date: datetime, duration: int, fs: int):
     # Name of temporary image
     img_name = "tmp.png"
 
+    img_path = os.path.join(i_path, img_name)
+
     detection = []
 
     if not os.path.exists(filepath):
@@ -274,15 +276,10 @@ def pipeline(filepath: str, date: datetime, duration: int, fs: int):
 
         # Get the spectrogramme object
         spectro = compute_spectro(filepath, sample_start, sample_end, fs, img_name, i_path)
-
-        img_path = os.path.join(i_path, img_name)
-
         
         result = inference_detector(model, img_path)
 
-        date_start = datetime.fromtimestamp(spectro_start/fs + timestamp_file)
-
-        detection = get_results(result, spectro, detection, date_start, model.classes)
+        detection = get_results(result, spectro, detection, spectro_start, model.CLASSES)
 
         # Close the spectro figure
         spectro.close()
@@ -298,15 +295,15 @@ def pipeline(filepath: str, date: datetime, duration: int, fs: int):
     spectro_start = end_file - timedelta(seconds=sec)
     spectro_end = end_file
 
-    spectro = compute_spectro(filepath, sample_start, sample_end, fs, img_name)
+    # spectro start and end
+    sample_start = int(datetime.timestamp(spectro_start) - timestamp_file) * fs
+    sample_end =  int(datetime.timestamp(spectro_end) - timestamp_file) * fs
 
-    img_path = os.path.join('tmp', img_name)
+    spectro = compute_spectro(filepath, sample_start, sample_end, fs, img_name, i_path)
     
     result = inference_detector(model, img_path)
-
-    date_start = datetime.fromtimestamp(spectro_start/fs + timestamp_file)
         
-    detection = get_results(result, spectro, detection, date_start)
+    detection = get_results(result, spectro, detection, spectro_start, model.CLASSES)
 
     # Close the spectro figure
     spectro.close()
@@ -323,24 +320,25 @@ def pipeline(filepath: str, date: datetime, duration: int, fs: int):
 
 if __name__ == "__main__":
 
+    import tkinter
     import doctest
     import mmdet
     import matplotlib
-    matplotlib.use('qtagg')
+    matplotlib.use('TkAgg')
 
-    doctest.testmod()
+    # doctest.testmod()
 
-    # filename = "/example/example.wav"
+    filename = "./example/test_230603_175500.wav"
     
     # date =''.join(re.split('[_ .]',os.path.split(filename)[-1])[4:6])
-    # date = datetime.strptime('111202012730', '%y%m%d%H%M%S')
+    date = datetime.strptime('111202012730', '%y%m%d%H%M%S')
 
-    # f = sf.SoundFile(filename)
+    f = sf.SoundFile(filename)
 
-    # fs = f.samplerate
-    # duration = f.frames / fs
+    fs = f.samplerate
+    duration = f.frames / fs
 
-    # results = pipeline(filename, date, duration, fs)
+    results = pipeline(filename, date, duration, fs)
 
 
 

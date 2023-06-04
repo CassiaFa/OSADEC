@@ -226,6 +226,21 @@ class Spectrogram():
         
         # return xpix, ypix, wpix, hpix # -ypix
 
+    def get_values(self, x, y, w, h):
+        # Get the temporal and frequential values from the pixel values of the bbox
+        ax = self.fig.gca()
+
+        # Get the size of the plot in pixels
+        _, height = self.fig.get_size_inches() * self.fig.dpi
+
+        # Convert the pixel values to data coordinates
+        x1, y1 = x, height - (y + h)
+        x2, y2 = x + w, height - y
+        start, fmin = ax.transData.inverted().transform((x1, y1))
+        end, fmax = ax.transData.inverted().transform((x2, y2))
+
+        return start, end, fmin, fmax
+
     def save_img(self, path=None):
         if path:
             self.fig.savefig(os.path.join(path,self.img_name), dpi=self.fig.dpi)

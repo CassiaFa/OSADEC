@@ -17,6 +17,7 @@ CREATE TABLE `DETECTIONS` (
   `id_detection` int AUTO_INCREMENT,
   `start` datetime,
   `stop` datetime,
+  `confidence` float,
   `id_file` int,
   `id_species` int,
   PRIMARY KEY (`id_detection`)
@@ -24,7 +25,7 @@ CREATE TABLE `DETECTIONS` (
 
 CREATE TABLE `PROJECTS` (
   `id_project` int AUTO_INCREMENT,
-  `name` varchar(100),
+  `name` varchar(100) UNIQUE,
   `depth` int,
   `latitude` float(10,6),
   `longitude` float(10,6),

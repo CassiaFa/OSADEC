@@ -22,4 +22,4 @@ LOAD DATA INFILE '/var/lib/mysql-files/detections.csv'
 INTO TABLE DETECTIONS
 FIELDS TERMINATED BY ',' 
 ENCLOSED BY '"' 
-LINES TERMINATED BY '\n' (start, stop, id_file, id_species);
+LINES TERMINATED BY '\n' (start, stop, confidence, id_file, id_species);

@@ -5,7 +5,6 @@ from src.utils.compute_pipline import pipeline
 
 from flask import Flask, render_template, request, send_from_directory
 from werkzeug.utils import secure_filename
-from flask_dropzone import Dropzone
 
 from datetime import datetime
 import time
@@ -34,8 +33,6 @@ app.config['UPLOAD_PATH'] = os.getenv('UPLOAD_FOLDER')
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-dropzone = Dropzone(app)
 
 @app.route("/")
 def index():

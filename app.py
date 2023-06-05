@@ -137,13 +137,13 @@ def handle_upload():
 
     Database.open_connexion()
 
-    # Database.add_project(project_name, depth, lat, long)
+    Database.add_project(project_name, depth, lat, long)
     
     id_project = Database.get_projects(name=project_name)["id_project"]
     
     print(f"Project {project_name} added to database with id {id_project}")
     
-    # Database.add_file(file_name, acquisition_date, duration, fs, app.config['UPLOAD_PATH'], id_project)
+    Database.add_file(file_name, acquisition_date, duration, fs, app.config['UPLOAD_PATH'], id_project)
 
     id_file = Database.get_files(name=file_name)["id_file"]
 

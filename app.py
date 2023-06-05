@@ -70,10 +70,11 @@ def account():
             password=password
         )
         files = Database.get_files()
+        projects = Database.get_projects()
         Database.close_connexion()
 
         if isinstance(user, dict):
-            return render_template('account.html', user=user, files=files)
+            return render_template('account.html', user=user, files=files, projects=projects)
 
     elif state == "sign_up":
         gender = request.values.get('gender')
@@ -98,9 +99,10 @@ def account():
             password=password
         )
         files = Database.get_files()
+        projects = Database.get_projects()
         Database.close_connexion()
         
-        return render_template('account.html', user=user, files=files)
+        return render_template('account.html', user=user, files=files, projects=projects)
 
 # Modify this part
 @app.route('/upload', methods=['POST'])

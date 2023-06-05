@@ -52,8 +52,13 @@
                 <h1 class="title_form">Analyse a new file</h1>
                 <form id="upload-form" action="/upload" enctype="multipart/form-data" method="post" onsubmit="handleSubmit(event)">
                     <div id="project" class="element_form">
-                        <label for="project">Project Name: *  </label>
-                        <input type="text" name="project" placeholder="Project Name*" required>
+                        <label for="project">Choose or write a project name: *  </label>
+                        <input list="project" name="project" placeholder="Project Name*" required>
+                        <datalist id="project">
+                            {% for p in projects %}
+                                <option value="{{ p['name'] }}">
+                            {% endfor %}
+                        </datalist>
                         <label for="acquisition_date">Date of acquisition: *  </label>
                         <input type="datetime-local" name="acquisition_date" step="1"  required>
                     </div>

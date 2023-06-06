@@ -70,7 +70,7 @@ def account():
             password=password
         )
         files = Database.get_files()
-        projects = Database.get_projects()
+        projects = [p["name"] for p in Database.get_projects()]
         Database.close_connexion()
 
         if isinstance(user, dict):
@@ -99,7 +99,7 @@ def account():
             password=password
         )
         files = Database.get_files()
-        projects = Database.get_projects()
+        projects = [p["name"] for p in Database.get_projects()]
         Database.close_connexion()
         
         return render_template('account.html', user=user, files=files, projects=projects)
@@ -139,11 +139,12 @@ def handle_upload():
 
     Database.open_connexion()
 
-    Database.add_project(project_name, depth, lat, long)
+    if not Database.get_projects(name=project_name):
+        Database.add_project(project_name, depth, lat, long)
+        print(f"Project {project_name} added to database")
     
     id_project = Database.get_projects(name=project_name)["id_project"]
-    
-    print(f"Project {project_name} added to database with id {id_project}")
+    print(f"Project {project_name} have id {id_project}")
     
     Database.add_file(file_name, acquisition_date, duration, fs, app.config['UPLOAD_PATH'], id_project)
 

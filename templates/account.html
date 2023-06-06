@@ -52,19 +52,19 @@
                 <h1 class="title_form">Analyse a new file</h1>
                 <form id="upload-form" action="/upload" enctype="multipart/form-data" method="post" onsubmit="handleSubmit(event)">
                     <div id="project" class="element_form">
-                        <label for="project">Choose or write a project name: *  </label>
-                        <input list="project" name="project" placeholder="Project Name*" required>
-                        <datalist id="project">
+                        <label for="project_name">Choose or write a project name: *  </label>
+                        <input list="project_name" name="project" placeholder="Project Name*" required>
+                        <datalist id="project_name">
                             {% for p in projects %}
-                                <option value="{{ p['name'] }}">
+                                <option value="{{ p }}">
                             {% endfor %}
                         </datalist>
                         <label for="acquisition_date">Date of acquisition: *  </label>
                         <input type="datetime-local" name="acquisition_date" step="1"  required>
                     </div>
                     <div id="coordinate" class="element_form">
-                        <label for="depth" min="0" max="11022">Depth: * </label>
-                        <input type="number" name="depth" placeholder="Depth of acquisition*" required>
+                        <label for="depth">Depth: * </label>
+                        <input type="number" min="0" max="11022" name="depth" placeholder="Depth *" required>
                         <label for="lat">Latitude: * </label>
                         <input type="number" step=".000001" min="-90" max="90" name="lat" placeholder="Latitude*" required>
                         <label for="long">Longitude: * </label>

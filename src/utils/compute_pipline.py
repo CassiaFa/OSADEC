@@ -7,6 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 import soundfile as sf
+import librosa
 
 from .db_tools import Database
 from .pixlabel import Spectrogram
@@ -135,7 +136,8 @@ def compute_spectro(filepath, start, stop, fs, img_name, img_path):
     """
 
     # load sound file
-    s, fs = sf.read(filepath, start=start, stop=stop)
+    s, fs = librosa.load(filepath, sr=2000, offset=start, duration=stop-start)
+    # s, fs = sf.read(filepath, start=start, stop=stop)
 
     nfft = 2048*2
     overlap = 90
@@ -271,8 +273,8 @@ def pipeline(filepath: str, date: datetime, duration: int, fs: int):
     while spectro_end < end_file:
         
         # spectro start and end
-        sample_start = int(datetime.timestamp(spectro_start) - timestamp_file) * fs
-        sample_end =  int(datetime.timestamp(spectro_end) - timestamp_file) * fs
+        sample_start = int(datetime.timestamp(spectro_start) - timestamp_file)
+        sample_end =  int(datetime.timestamp(spectro_end) - timestamp_file)
 
         # Get the spectrogramme object
         spectro = compute_spectro(filepath, sample_start, sample_end, fs, img_name, i_path)
@@ -296,8 +298,8 @@ def pipeline(filepath: str, date: datetime, duration: int, fs: int):
     spectro_end = end_file
 
     # spectro start and end
-    sample_start = int(datetime.timestamp(spectro_start) - timestamp_file) * fs
-    sample_end =  int(datetime.timestamp(spectro_end) - timestamp_file) * fs
+    sample_start = int(datetime.timestamp(spectro_start) - timestamp_file)
+    sample_end =  int(datetime.timestamp(spectro_end) - timestamp_file)
 
     spectro = compute_spectro(filepath, sample_start, sample_end, fs, img_name, i_path)
     

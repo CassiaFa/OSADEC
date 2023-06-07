@@ -4,8 +4,13 @@
 
 {% block content %}
     <section class="intro">
-        <h2 class="intro-title">Annoter les sons des mammifères marins</h2>
-        <p class="intro-text">Notre application vous aide à annoté les données acoustiques sous-marines pour découvrir les mammifères marins dans leur environnement naturel.</p>
-        <a class="intro-button" href="{{ url_for("sign_in") }}">Get started</a>
+        <div class="intro-block">
+            <h2 class="intro-title">Welcome to OSADEC - Ocean Sound Assistant DEtection and Classification!</h2>
+            <p class="intro-text">OSADEC is a powerful web application designed to assist in the annotation of whale calls in WAV files using an advanced AI model. With OSADEC, you can efficiently label and classify marine mammal sounds, contributing to the understanding and conservation of marine ecosystems.</p>
+            <p class="intro-text">Our intelligent AI model analyzes the unique characteristics of whale calls, enabling accurate identification and classification. OSADEC provides an intuitive and user-friendly interface, making the annotation process seamless and efficient.</p>
+            <p class="intro-text">Join us in this exciting journey to explore the sounds of the ocean and contribute to valuable research in marine mammal communication. Start using OSADEC today and become a vital part of marine conservation efforts.</p>
+
+            <a class="intro-button" href="{{ url_for("sign_in") }}">Get started</a>
+        </div>
     </section>
 {% endblock %}

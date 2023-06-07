@@ -48,10 +48,33 @@
   
   /* Section d'introduction */
   .intro {
-    padding: 40px;
-    text-align: center;
+    background-repeat:no-repeat; /*removes repetition*/
+    background-size:cover; /*allows picture to take up whole section space*/
+    background-image: url('../images/orca.jpg');
+    display: flex;
+    justify-content: center;
   }
   
+  .intro-block {
+    background-color: rgba(255, 255, 255, 0.5);
+    border-radius: 20px;
+    width: 60%;
+    padding: 40px;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+  }
+
+  .intro-text {
+    width: 70%;
+    padding: 20px;
+    text-align: justify;
+    font-size: 18px;
+    font-weight: 600;
+  }
+
   .intro-title {
     font-size: 36px;
     /* margin- */
@@ -62,7 +85,7 @@
     color: blue;
     padding: 10px 20px;
     border-radius: 5px;
-    height: 50%;
+    /* height: 50%; */
     font-size: 16px;
     text-decoration: none;
   }

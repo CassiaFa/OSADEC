@@ -33,3 +33,10 @@ services:
 # # Names of volume
 # volumes:
 #   osadecdb:
+  app:
+    container_name: osadec
+    links:
+      - "db"
+    build: ./
+    ports:
+      - "5001:5001"

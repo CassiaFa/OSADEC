@@ -3,7 +3,6 @@
 }
 
 .user_info {
-    background-color: #f80606;
     width: 20%;
     display: flex;
     flex-direction: column;
@@ -40,6 +39,7 @@
 }
 
 .tabs .tab-bodies {
+    height: 100%;
     padding: 0.5em;
     background-color: RGB(235, 235, 235);
     flex-grow: 1;
@@ -60,12 +60,10 @@
 
 
 .dashboard{
-    background-color: #06f826;
     width : 100%;
 }
 
 .user_img {
-    background-color: #6f00ff;
     width: 10rem;
     height: 10rem;
     border: 2px;
@@ -85,25 +83,72 @@ img {
 }
 
 .user_perso {
-    background-color: aqua;
     margin: auto;
     width: 100%;
     height: 100%;
     margin-top: 10px;
 }
 
-table {
+/* ============================ */
+/*          Explore table       */
+
+.tableFixHead {
+    overflow-y: auto; /* make the table scrollable if height is more than 200 px  */
+    height: 500px; /* gives an initial height of 200px to the table */
+}
+.tableFixHead thead th {
+    position: sticky; /* make the table heads sticky */
+    top: 0px; /* table head will be placed from the top of the table and sticks to it */
+}
+
+#files_table {
     margin: 10px auto; /* or margin: 0 auto 0 auto */
     font-family: 'EB Garamond', serif;
+    border-collapse: collapse;
+    width: 80%;
+    
 }
 
-td {
-    padding: 10px;
+#files_table td, #files_table th {
+    border: 1px solid #ddd;
+    padding: 8px;
     text-align: left;
+  }
+
+#files_table tr:nth-child(even){
+    background-color: #f2f2f2;
 }
+
+#files_table tr:hover {
+    background-color: #ddd;
+}
+
+#files_table th {
+    background-color: blue;
+    color: white;
+  }
+
+
+.link-card {
+    color: black;
+    text-decoration: none;
+    
+}
+
+.link-card:visited{
+    color: black;
+}
+
+.download_icon {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+
+/* ============================= */
 
 #upload-form {
-    background-color: chocolate;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -144,22 +189,25 @@ input {
     color: white;
   }
 
-.explore {
-    background-color: pink;
-}
+/* .explore {
+} */
 
 /* Dropzone */
 
 .dropzone {
     border: 4px dashed blue;
     border-radius: 5px;
-    margin: 10px 0 10px; 
-    min-height: 130px; 
+    margin: 50px 0 10px; 
+    min-height: 200px; 
     width: 40%; 
     font-weight: bold; 
     font-family: "EB Garamond", serif;
     padding: 10px;
     text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
 }
 
 input[type="file"] {

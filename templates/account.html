@@ -83,20 +83,25 @@
             </div>
             <div class="dashboard explore" style="display:none;">
                 <h1 class="title_form">List of files</h1>
-                <div style="overflow-x:auto;">
-                    <table >
-                        <tr>
-                            <th>File name</th>
-                            <th>Acquisition date</th>
-                            <th>Download</th>
-                        </tr>
+                <div class="tableFixHead" style="overflow-x:auto;">
+                    <table id="files_table">
+                        <thead>
+                            <tr>
+                                <th>File name</th>
+                                <th>Acquisition date</th>
+                                <th>Download</th>
+                            </tr>
+                        </thead>
+                        <tbody>
                         {% for f in files %}
                             <tr>
-                                <td><a href="#">{{ f['name'] }}</a></td>
-                                <td><a href="#">{{ f['date'] }}</a></td>
-                                <td class="ctr">{{ f['path'] }}</td>
+                                <td><a class="link-card" href="#">{{ f['name'] }}</a></td>
+                                <td>{{ f['date'] }}</td>
+                                <td class="download_icon"> <p style="margin-right: 10px;">.wav :</p><a href="#"><img src="{{ url_for('static', filename='images/download.png') }}" alt="Download file" width="20" height="20"></a></td>
+                                <td class="download_icon"><p style="margin-right: 10px;">.csv :</p><a href="#"><img src="{{ url_for('static', filename='images/download.png') }}" alt="Download file" width="20" height="20"></a></td>
                             </tr>
                         {% endfor %}
+                        </tbody>
                     </table>
                 </div>
             </div>

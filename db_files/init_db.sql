@@ -4,7 +4,7 @@ USE `DATA`;
 
 CREATE TABLE `FILES` (
   `id_file` int AUTO_INCREMENT,
-  `name` varchar(50),
+  `name` varchar(50) UNIQUE,
   `date` datetime,
   `duration` int,
   `fs` int,

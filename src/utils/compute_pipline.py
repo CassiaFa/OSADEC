@@ -108,7 +108,7 @@ def load_detector(config_path=None, checkpoint_path=None):
 
     return model
 
-def compute_spectro(filepath, start, stop, fs, img_name, img_path):
+def compute_spectro(filepath, start, stop, fs, img_name, path):
     
     """
     Computes the spectrogram of the sound file given by `filepath`, from `start` to `stop` seconds, 
@@ -128,8 +128,9 @@ def compute_spectro(filepath, start, stop, fs, img_name, img_path):
     Example:
         >>> import os
         >>> from pixlabel import Spectrogram
-        >>> img_path = os.path.join(os.getcwd(), 'spectrogram.png')
-        >>> spectro = compute_spectro('example.wav', 0, 5, 44100, 'spectrogram.png', img_path)
+        >>> img_path = "./example"
+        >>> img_name = "spectrogram.png"
+        >>> spectro = compute_spectro('example.wav', 0, 300, 44100, img_name, img_path)
         >>> assert os.path.exists(img_path)
         >>> assert isinstance(spectro, Spectrogram)
 
@@ -139,11 +140,10 @@ def compute_spectro(filepath, start, stop, fs, img_name, img_path):
     s, fs = librosa.load(filepath, sr=2000, offset=start, duration=stop-start)
     # s, fs = sf.read(filepath, start=start, stop=stop)
 
-    nfft = 2048*2
-    overlap = 90
-    nwin = 2000
-    window = np.hamming(nwin)
-    spectro = Spectrogram(s=s, fs=fs, img_name=img_name, nfft=nfft, win_size=nwin, overlap=overlap)
+    spectro = Spectrogram(s=s, fs=fs, img_name=img_name)
+
+    # Path to the image
+    img_path = os.path.join(path, img_name)
 
     # Save temporary image
     spectro.save_img(path=img_path)

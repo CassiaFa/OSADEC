@@ -90,11 +90,11 @@ class Range:
                 raise ValueError('Max value should be bigger than min value')
 
     def __repr__(self):
-        return str(self.min) + str(self.max)  #f"Range({self.min}:{self.max})"
+        return str(self.min) + str(self.max) 
 
 class Spectrogram():
 
-    def __init__(self, s, fs:int, img_name, nfft=2048, win_size=2048, overlap=.5, cmap_color='Greys') -> None:
+    def __init__(self, s, fs:int, img_name, nfft=2048*2, win_size=2000, overlap=90, cmap_color='Greys') -> None:
         
         self.mw = 0.000844055830808625
 
@@ -135,30 +135,12 @@ class Spectrogram():
 
         # Restricting spectro frenquencies
         freqs_to_keep = (frequencies == frequencies)
-        # if self.min_freq_plot:
-        #     freqs_to_keep *= self.min_freq_plot <= frequencies
-        # if self.max_freq_plot:
-        #     freqs_to_keep *= frequencies <= self.max_freq_plot
         frequencies = frequencies[freqs_to_keep]
         spectro = spectro[freqs_to_keep, :]
-
-        # Setting self.max_w and normalising spectro as needed
-        # if main_ref:
-        # Restricting spectro frenquencies for dynamic range
         freqs_to_keep = (frequencies == frequencies)
-        # if self.min_freq_dyn:
-        #     freqs_to_keep *= self.min_freq_dyn <= frequencies
-        # if self.max_freq_dyn:
-        #     freqs_to_keep *= frequencies <= self.max_freq_dyn
         self.max_w = np.amax(spectro[freqs_to_keep, :])
         spectro = spectro / self.max_w
 
-        # # This is needed to match end of tile n with start of tile n+1
-        # if shorten:
-        #     segment_times = segment_times[:-1]
-        #     spectro = spectro[:,:-1]
-
-        # Switching to log spectrogram
         log_spectro = 10 * np.log10(np.array(spectro))
 
         # Ploting spectrogram
@@ -172,35 +154,20 @@ class Spectrogram():
         max_color_val = color_val_range.max if color_val_range else None
 
         self.fig = plt.figure(figsize=(fact_x * 1800 / my_dpi, fact_y * y / my_dpi), dpi=my_dpi)
-        # self.fig = plt.figure()
+        
         plt.pcolormesh(segment_times, frequencies, log_spectro, cmap=cmap_color)
         plt.clim(vmin=min_color_val, vmax=max_color_val)
 
-        plt.ylim(15, 200) #150) #90)
+        plt.ylim(15, 200)
 
         plt.axis('off')
         self.fig.tight_layout()
 
         self.width, self.height = self.fig.canvas.get_width_height()
 
-        # self.fig.savefig('test.png', dpi=my_dpi)
     
 
     def get_coordinates(self, start, fmin, end, fmax):
-        # Get the x and y data and transform it into pixel coordinates
-        # ax = plt.gca()
-        # xywh_pixels = ax.transData.transform(np.vstack([x,fmin,w,fmax]).T)
-
-        # [xpix, wpix], [ypix, hpix] = xywh_pixels.T
-
-        # =============== BEST ===============
-        # xy_pixels = ax.transData.transform(np.vstack([start, fmin, end, fmax]).T)
-        # [x1, x2], [y2, y1] = xy_pixels.T
-        # y2, y1 = self.height - y2, self.height - y1
-        # x, y, w, h = x1, y1, x2-x1, y2-y1
-
-        # return x, y, w, h
-        # =====================================
 
         # Get the x and y data and transform it into pixel coordinates
         ax = self.fig.gca()
@@ -214,17 +181,6 @@ class Spectrogram():
         x, y, w, h = x1, height - y2, x2 - x1, y2 - y1
 
         return x, y, w, h
-
-        # ypix, hpix = self.height - ypix, self.height - hpix
-        # print('Coordinates of the points in pixel coordinates...')
-
-        # for xp, yp in zip(self.xpix, self.ypix):
-        #     print('{x:0.2f}\t{y:0.2f}'.format(x=xp, y=yp))
-
-        # We have to be sure to save the figure with it's current DPI
-        # (savfig overrides the DPI of the figure, by default)
-        
-        # return xpix, ypix, wpix, hpix # -ypix
 
     def get_values(self, x, y, w, h):
         # Get the temporal and frequential values from the pixel values of the bbox

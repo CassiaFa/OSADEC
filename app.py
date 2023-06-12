@@ -3,7 +3,7 @@ from src.utils import *
 from dotenv import load_dotenv
 from src.utils.compute_pipline import pipeline
 
-from flask import Flask, render_template, request, send_from_directory
+from flask import Flask, render_template, request, send_from_directory, jsonify
 from werkzeug.utils import secure_filename
 
 from datetime import datetime
@@ -49,6 +49,17 @@ def sign_up():
 @app.route('/forgot-password')
 def forgot_password():
     return render_template("forgot-password.html")
+
+@app.route('/file_info/<filename>')
+def get_info(filename):
+    
+    Database.open_connexion()
+    # Get file info
+    file_info = Database.get_all_info(filename)
+    
+    Database.close_connexion()
+    
+    return jsonify(file_info)
 
 @app.route('/account', methods=['POST'])
 def account():

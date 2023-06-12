@@ -345,6 +345,32 @@ class Database():
         cls.__cursor.execute(querry, param)        
         cls.__bdd.commit()
     
+    @classmethod
+    def get_all_info(cls, file_name):
+        """
+        Retrieves all information about a file, the project and the detection corresponding to it.
+        
+        Args:
+            file_name (str): The name of the file.
+
+        Returns:
+            dict: A dictionary containing the information about the file, the project and the detection
+        """
+        # querry = "SELECT @@GLOBAL.sql_mode;"
+        # cls.__cursor.execute(querry)
+        # test = cls.__cursor.fetchall
+
+        querry = f" SELECT PROJECTS.name AS p_name, PROJECTS.depth, PROJECTS.latitude, PROJECTS.longitude, FILES.name, FILES.date, FILES.fs, FILES.duration, SPECIES.english_name AS s_name, COUNT(*) AS nb_detections \
+                    FROM FILES \
+                    INNER JOIN DETECTIONS ON FILES.id_file = DETECTIONS.id_file \
+                    INNER JOIN PROJECTS ON FILES.id_project = PROJECTS.id_project \
+                    INNER JOIN SPECIES ON DETECTIONS.id_species = SPECIES.id_species \
+                    WHERE FILES.name='{file_name}'\
+                    GROUP BY DETECTIONS.id_species;"
+        cls.__cursor.execute(querry)
+        result = cls.__cursor.fetchall()
+        
+        return result
    
         
 

@@ -97,8 +97,8 @@
                             <tr>
                                 <td><a class="link-card" href="{{ url_for('get_info', filename=f['name']) }}">{{ f['name'] }}</a></td>
                                 <td>{{ f['date'] }}</td>
-                                <td class="download_icon"> <p style="margin-right: 10px;">.wav :</p><a href="#"><img src="{{ url_for('static', filename='images/download.png') }}" alt="Download file" width="20" height="20"></a></td>
-                                <td class="download_icon"><p style="margin-right: 10px;">.csv :</p><a href="#"><img src="{{ url_for('static', filename='images/download.png') }}" alt="Download file" width="20" height="20"></a></td>
+                                <td class="download_icon"> <p style="margin-right: 10px;">.wav :</p><a href="{{ url_for('download_file', file=f['name'] , type='wav')}}"><img src="{{ url_for('static', filename='images/download.png') }}" alt="Download file" width="20" height="20"></a></td>
+                                <td class="download_icon"><p style="margin-right: 10px;">.csv :</p><a href="{{ url_for('download_file', file=f['name'], id=f['id_file'], type='csv')}}"><img src="{{ url_for('static', filename='images/download.png') }}" alt="Download file" width="20" height="20"></a></td>
                             </tr>
                         {% endfor %}
                         </tbody>

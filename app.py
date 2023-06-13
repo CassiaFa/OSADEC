@@ -3,8 +3,10 @@ from src.utils import *
 from dotenv import load_dotenv
 from src.utils.compute_pipline import pipeline
 
-from flask import Flask, render_template, request, send_from_directory, jsonify
+from flask import Flask, render_template, request, send_from_directory, jsonify, make_response
 from werkzeug.utils import secure_filename
+
+import pandas as pd
 
 from datetime import datetime
 import time
@@ -60,6 +62,27 @@ def get_info(filename):
     Database.close_connexion()
     
     return jsonify(file_info)
+
+@app.route('/account/<type>/<path:file>')
+@app.route('/account/<type>/<int:id>/<path:file>')
+def download_file(type, file, id=None):
+    if type == "wav":
+        return send_from_directory(app.config['UPLOAD_PATH'], file, as_attachment=True)
+    elif type == 'csv':
+        Database.open_connexion()
+        result = Database.get_detections(id_file=id)
+        Database.close_connexion()
+        data = []
+        for row in result:
+            data.append([row['start'].strftime("%y-%m-%d %H:%M:%S"), row['stop'].strftime("%y-%m-%d %H:%M:%S"), row['confidence']])
+
+        df = pd.DataFrame(data, columns=['start', 'end', 'confidence'], index=None)
+
+        resp = make_response(df.to_csv())
+
+        resp.headers["Content-Disposition"] = "attachment; filename=results.csv"
+
+        return resp
 
 @app.route('/account', methods=['POST'])
 def account():

@@ -33,6 +33,7 @@ class Database():
     __DB = 'DATA' #'USER_DB'
     __cursor = None
     __secure = Encryptor()
+    __join = False
 
     @classmethod
     def open_connexion(cls):
@@ -181,15 +182,15 @@ class Database():
 
         if id_file:
             if time_min and time_max:
-                querry = f"SELECT start, stop, id_species FROM DETECTIONS WHERE id_file={id_file} AND START>='{time_min}' AND STOP<='{time_max}';"
+                querry = f"SELECT start, stop, id_species, confidence FROM DETECTIONS WHERE id_file={id_file} AND START>='{time_min}' AND STOP<='{time_max}';"
             elif time_min:
-                querry = f"SELECT start, stop, id_species FROM DETECTIONS WHERE id_file={id_file} AND START>='{time_min}';"
+                querry = f"SELECT start, stop, id_species, confidence FROM DETECTIONS WHERE id_file={id_file} AND START>='{time_min}';"
             elif time_max:
-                querry = f"SELECT start, stop, id_species FROM DETECTIONS WHERE id_file={id_file} AND STOP<='{time_max}';"
+                querry = f"SELECT start, stop, id_species, confidence FROM DETECTIONS WHERE id_file={id_file} AND STOP<='{time_max}';"
             else:
-                querry = f"SELECT start, stop, id_species FROM DETECTIONS WHERE id_file={id_file};"
+                querry = f"SELECT start, stop, id_species, confidence FROM DETECTIONS WHERE id_file={id_file};"
         else:
-            querry = "SELECT start, stop, id_file, id_species FROM DETECTIONS;"
+            querry = "SELECT start, stop, id_file, id_species, confidence FROM DETECTIONS;"
         
         cls.__cursor.execute(querry)
 
@@ -359,6 +360,9 @@ class Database():
         # querry = "SELECT @@GLOBAL.sql_mode;"
         # cls.__cursor.execute(querry)
         # test = cls.__cursor.fetchall
+        if not cls.__join:
+            cls.__cursor.execute("SET GLOBAL sql_mode=(SELECT REPLACE(@@sql_mode,'ONLY_FULL_GROUP_BY',''));")
+            cls.__join = True
 
         querry = f" SELECT PROJECTS.name AS p_name, PROJECTS.depth, PROJECTS.latitude, PROJECTS.longitude, FILES.name, FILES.date, FILES.fs, FILES.duration, SPECIES.english_name AS s_name, COUNT(*) AS nb_detections \
                     FROM FILES \

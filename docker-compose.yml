@@ -5,11 +5,16 @@ services:
 
   app:
     container_name: osadec
-    build: ./
+    build: ./app
+    restart: always
     links:
       - "db"
     ports:
       - "5001:5001"
+    volumes:
+      - ./app/bucket:/osadec/bucket
+      - ./app/tmp:/osadec/tmp
+      - ./app/models:/osadec/models
 
   db:
     image: mysql
@@ -31,12 +36,7 @@ services:
       - '3307'
     volumes:
       # Where data will be persisted
-      - ./osadecdb:/var/lib/mysql
-      - ./db_files/init_db.sql:/docker-entrypoint-initdb.d/1_schema.sql
-      - ./db_files/load_data.sql:/docker-entrypoint-initdb.d/2_load_data.sql
-      - ./db_files/init_data/:/var/lib/mysql-files/
-      # /docker-entrypoint-initdb.d/init_data
-# # Names of volume
-# volumes:
-#   osadecdb:
-
+      - ./db/osadecdb:/var/lib/mysql
+      - ./db/db_files/init_db.sql:/docker-entrypoint-initdb.d/1_schema.sql
+      - ./db/db_files/load_data.sql:/docker-entrypoint-initdb.d/2_load_data.sql
+      - ./db/db_files/init_data/:/var/lib/mysql-files/

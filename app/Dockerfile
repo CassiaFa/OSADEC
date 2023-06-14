@@ -16,6 +16,14 @@ COPY requirements.txt requirements.txt
 
 RUN pip install -r requirements.txt
 
-COPY . .
+COPY app.py app.py
+
+COPY src src
+
+COPY static static
+
+COPY templates templates
+
+COPY .env .env
 
 CMD ["python", "-m", "flask", "run", "--host=0.0.0.0"]

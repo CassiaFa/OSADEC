@@ -50,3 +50,7 @@ else
 fi
 
 docker-compose up -d
+
+address=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' osadec)
+
+echo "To access the app, visit http://$address:5000"

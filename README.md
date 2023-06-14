@@ -1,7 +1,9 @@
 <!-- insert logo below-->
 <p align="center">
+  <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./app/static/images/logo_white.png">
   <img alt="OSADEC logo" src="./app/static/images/logo.png" width="250">
+  </picture>
 </p>
 
 ___

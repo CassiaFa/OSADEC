@@ -3,14 +3,20 @@ version: '3.1'
 
 services:
 
+  app:
+    container_name: osadec
+    build: ./
+    links:
+      - "db"
+    ports:
+      - "5001:5001"
+
   db:
     image: mysql
     restart: always
     container_name: osadecdb
     command: --secure-file-priv=/var/lib/mysql-files
     environment:
-      # Name of the database
-      # MYSQL_DATABASE: 'OSADEC'
       # Root password
       MYSQL_ROOT_PASSWORD: 'godofdb29'
       # User name
@@ -33,3 +39,4 @@ services:
 # # Names of volume
 # volumes:
 #   osadecdb:
+

@@ -28,8 +28,8 @@ class Database():
 
     __USER = 'root'
     __PWD = 'godofdb29'
-    __HOST = 'localhost'
-    __PORT = '3307'
+    __HOST = 'db'
+    __PORT = '3306'
     __DB = 'DATA' #'USER_DB'
     __cursor = None
     __secure = Encryptor()

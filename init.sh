@@ -48,3 +48,5 @@ else
 
     echo "Env file created"
 fi
+
+docker-compose up -d

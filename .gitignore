@@ -19,3 +19,5 @@ test*
 *.png
 *.zip
 visualize_data.py
+detection_model.py
+load_coco.py

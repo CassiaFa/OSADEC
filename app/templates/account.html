@@ -38,7 +38,7 @@
                         <td>{{ user['registration_date'].strftime('%Y-%m-%d') }}</td>
                     </tr>
                     <tr>
-                        <td colspan="2" id="deconnexion"><a class="header-signin" href="{{ url_for('index') }}">Deconnexion</a></td>
+                        <td colspan="2" id="deconnexion"><a class="header-signin" href="{{ url_for('index', deconexion='deconnected') }}">Deconnexion</a></td>
                     </tr>
                 </tbody>
             </table>

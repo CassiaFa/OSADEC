@@ -104,12 +104,13 @@ class Database():
         cls.__cursor.execute(querry)
 
         user = cls.__cursor.fetchone()
-
-        if password == cls.__secure.decrypt(user['password'], cls.__cursor):
-            return user
+        if user:
+            if password == cls.__secure.decrypt(user['password'], cls.__cursor):
+                return user
+            else:
+                return None
         else:
-            return False
-
+            return None
     
     @classmethod
     def get_files(cls, id_file=None, time_min=None, time_max=None, name=None):

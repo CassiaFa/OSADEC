@@ -21,15 +21,6 @@ ALLOWED_EXTENSIONS = {'wav'}
 app = Flask(__name__)
 
 app.config['UPLOAD_PATH'] = os.getenv('UPLOAD_FOLDER')
-# app.config.update(
-#     # Flask-Dropzone config:
-#     DROPZONE_ALLOWED_FILE_TYPE='audio',
-#     DROPZONE_MAX_FILES=1,
-#     DROPZONE_IN_FORM=True,
-#     DROPZONE_UPLOAD_ON_CLICK=True,
-#     DROPZONE_UPLOAD_ACTION='handle_upload',  # URL or endpoint
-#     DROPZONE_UPLOAD_BTN_ID='submit',
-# )
 
 # Check if file have the good extension
 def allowed_file(filename):
@@ -37,12 +28,26 @@ def allowed_file(filename):
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @app.route("/")
-def index():
+@app.route("/<deconnection>")
+def index(deconnection=None):
+    global user
+    global state
+    
+    if deconnection=="deconnected":
+        user = None
+        state = None
+
     return render_template("index.html")
 
 @app.route("/sign_in")
 def sign_in():
-    return render_template("sign_in.html")
+    global user
+    global state
+
+    if state == "connected":
+        return render_template("account.html", user=user)
+    else:
+        return render_template("sign_in.html")
 
 @app.route('/sign_up')
 def sign_up():
@@ -80,7 +85,7 @@ def download_file(type, file, id=None):
 
         resp = make_response(df.to_csv())
 
-        resp.headers["Content-Disposition"] = "attachment; filename=results.csv"
+        resp.headers["Content-Disposition"] = f"attachment; filename={file[:-4]}.csv"
 
         return resp
 
@@ -92,51 +97,70 @@ def account():
     If user exists, renders the account page with user details and files associated with the user.
     If state parameter is 'sign_up', adds the new user to the database with provided details and renders the account page with the new user details and files associated with the user.
     """
+    global user
+    global state
 
-    state = request.values.get('state')
-    if state == "sign_in":
-        username = request.values.get('username')
-        password = request.values.get('password')
+    if isinstance(user, dict):
+        return render_template('account.html', user=user)
+    else :
 
-        Database.open_connexion()
-        user = Database.check_user(
-            username=username,
-            password=password
-        )
-        files = Database.get_files()
-        projects = [p["name"] for p in Database.get_projects()]
-        Database.close_connexion()
+        state = request.values.get('state')
+        if state == "sign_in":
+            username = request.values.get('username')
+            password = request.values.get('password')
 
-        if isinstance(user, dict):
+            Database.open_connexion()
+            user = Database.check_user(
+                username=username,
+                password=password
+            )
+            Database.close_connexion()
+            
+            if isinstance(user, dict):
+                Database.open_connexion()
+
+                files = Database.get_files()
+                
+                projects = [p["name"] for p in Database.get_projects()]
+
+                Database.close_connexion()
+                
+                state = "connected"
+                
+                return render_template('account.html', user=user, files=files, projects=projects)
+            else:
+                return render_template('sign_in.html')
+
+        elif state == "sign_up":
+            gender = request.values.get('gender')
+            firstName = request.values.get('firstName')
+            lastName = request.values.get('lastName')
+            username = request.values.get('username')
+            email = request.values.get('email')
+            password = request.values.get('password')
+
+            Database.open_connexion()
+            Database.add_user(
+                gender=gender,
+                first_name=firstName,
+                last_name=lastName,
+                username=username,
+                email=email,
+                password=password
+            )
+            print("####################\n New user added ! \n####################")
+            user = Database.check_user(
+                username=username,
+                password=password
+            )
+            files = Database.get_files()
+            projects = [p["name"] for p in Database.get_projects()]
+            Database.close_connexion()
+            
+            state = "connected"
             return render_template('account.html', user=user, files=files, projects=projects)
-
-    elif state == "sign_up":
-        gender = request.values.get('gender')
-        firstName = request.values.get('firstName')
-        lastName = request.values.get('lastName')
-        username = request.values.get('username')
-        email = request.values.get('email')
-        password = request.values.get('password')
-
-        Database.open_connexion()
-        Database.add_user(
-            gender=gender,
-            first_name=firstName,
-            last_name=lastName,
-            username=username,
-            email=email,
-            password=password
-        )
-        print("####################\n New user added ! \n####################")
-        user = Database.check_user(
-            username=username,
-            password=password
-        )
-        files = Database.get_files()
-        projects = [p["name"] for p in Database.get_projects()]
-        Database.close_connexion()
-        
-        return render_template('account.html', user=user, files=files, projects=projects)
+        else:
+            return render_template('sign_in.html')
 
 # Modify this part
 @app.route('/upload', methods=['POST'])
@@ -217,7 +241,7 @@ def handle_upload():
     # Database.add_file(secure_filename(f.filename), acquisition_date, duration, fs, app.config['UPLOAD_PATH'], id_project)
     # Database.close_connexion()
 
-    return '', 204
+    return render_template('account.html')
     
 
 @app.route('/form', methods=['POST'])
@@ -227,5 +251,6 @@ def handle_form():
     return 'file uploaded and form submit<br>title: %s<br> description: %s' % (title, description)
 
 if __name__ == "__main__":
-    db = Database
+    user = None
+    state = None
     app.run(debug=True, port=5001)

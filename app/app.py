@@ -23,18 +23,21 @@ app.config['UPLOAD_PATH'] = os.getenv('UPLOAD_FOLDER')
 app.config['SECRET_KEY'] = os.getenv('SOCKET_KEY')
 socketio = SocketIO(app, cors_allowed_origins="*")
 
+user = None
+state = None
+
 # Check if file have the good extension
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @app.route("/")
-@app.route("/<deconnection>")
-def index(deconnection=None):
+@app.route("/<deconnexion>")
+def index(deconnexion=None):
     global user
     global state
     
-    if deconnection=="deconnected":
+    if deconnexion=="deconnected":
         user = None
         state = None
 
@@ -46,7 +49,7 @@ def sign_in():
     global state
 
     if state == "connected":
-        return redirect("/sign_in/account", code=302)
+        return redirect("/account", code=302)
     else:
         return render_template("sign_in.html")
 
@@ -90,8 +93,8 @@ def download_file(type, file, id=None):
 
         return resp
 
-@app.route('/sign_in/account', methods=['GET', 'POST'])
-@app.route('/account', methods=['POST'])
+# @app.route('/sign_in/account', methods=['GET', 'POST'])
+@app.route('/account', methods=['GET', 'POST'])
 def account():
     """
     Route for account page with POST method.
@@ -258,6 +261,4 @@ def handle_form():
     return 'file uploaded and form submit<br>title: %s<br> description: %s' % (title, description)
 
 if __name__ == "__main__":
-    user = None
-    state = None
-    socketio.run(app=app, debug=True, port=5001)
+    socketio.run(app=app, debug=True, host='0.0.0.0', port=5000)

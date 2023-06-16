@@ -8,7 +8,7 @@
     <script type="module" src="{{ url_for('static', filename='js/dropzone.js') }}"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/4.3.1/socket.io.min.js"></script>
     <script>
-        var socket = io.connect('http://localhost:5001/progress');
+        var socket = io.connect('http://'+ document.domain + ':' + location.port +'/progress');
 
         socket.on('connect', function(){
             console.log('Socket connected');

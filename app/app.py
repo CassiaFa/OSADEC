@@ -3,14 +3,13 @@ from src.utils import *
 from dotenv import load_dotenv
 from src.utils.compute_pipline import pipeline
 
-from flask import Flask, render_template, request, send_from_directory, jsonify, make_response
+from flask import Flask, render_template, request, send_from_directory, jsonify, make_response, redirect
 from werkzeug.utils import secure_filename
+from flask_socketio import SocketIO
 
 import pandas as pd
 
 from datetime import datetime
-import time
-import json
 
 import soundfile as sf
 
@@ -21,6 +20,8 @@ ALLOWED_EXTENSIONS = {'wav'}
 app = Flask(__name__)
 
 app.config['UPLOAD_PATH'] = os.getenv('UPLOAD_FOLDER')
+app.config['SECRET_KEY'] = os.getenv('SOCKET_KEY')
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Check if file have the good extension
 def allowed_file(filename):
@@ -45,7 +46,7 @@ def sign_in():
     global state
 
     if state == "connected":
-        return render_template("account.html", user=user)
+        return redirect("/sign_in/account", code=302)
     else:
         return render_template("sign_in.html")
 
@@ -89,6 +90,7 @@ def download_file(type, file, id=None):
 
         return resp
 
+@app.route('/sign_in/account', methods=['GET', 'POST'])
 @app.route('/account', methods=['POST'])
 def account():
     """
@@ -126,6 +128,8 @@ def account():
                 Database.close_connexion()
                 
                 state = "connected"
+
+                user['registration_date'] = user['registration_date'].strftime('%Y-%m-%d')
                 
                 return render_template('account.html', user=user, files=files, projects=projects)
             else:
@@ -157,10 +161,17 @@ def account():
             projects = [p["name"] for p in Database.get_projects()]
             Database.close_connexion()
             
+            user['registration_date'] = user['registration_date'].strftime('%Y-%m-%d')
+
             state = "connected"
             return render_template('account.html', user=user, files=files, projects=projects)
         else:
             return render_template('sign_in.html')
+
+
+@socketio.on('connect', namespace='/progress')
+def handle_connect():
+    print('Client connected')
 
 # Modify this part
 @app.route('/upload', methods=['POST'])
@@ -168,10 +179,7 @@ def handle_upload():
     
     # Step 1: Upload file
 
-    # file_progress = 0
-    # total_steps = 4
-    # progress_data = {'file': file_progress}
-
+    socketio.emit('progress', {'percent':0, 'message' : 'Uploading file ...', 'status':'loading'}, namespace='/progress')
 
     for key, f in request.files.items():
         file_name = secure_filename(f.filename)
@@ -181,9 +189,11 @@ def handle_upload():
 
             print(f"{file_path} uploaded")
 
-    # progress_data['file'] = 1
-    
+    socketio.emit('progress', {'percent':25, 'message' : 'File uploaded', 'status':'loading'}, namespace='/progress')
+
     # Step 2: Write file information in the database
+
+    socketio.emit('progress', {'percent':25, 'message' : 'Writing file information ...', 'status':'loading'}, namespace='/progress')
 
     project_name = request.values.get('project')
     acquisition_date = request.values.get('acquisition_date')
@@ -210,20 +220,21 @@ def handle_upload():
 
     print(f"File {file_name} added to database with id {id_file}")
 
-    # progress_data['write_db'] = 1
-    
-    # send_progress(progress_data)  # Send progress update to frontend
+    socketio.emit('progress', {'percent':50, 'message' : 'File information written', 'status':'loading'}, namespace='/progress')
 
     # Step 3: Compute the detection pipeline on the file
+
+    socketio.emit('progress', {'percent':50, 'message' : 'Computing detection pipeline ...', 'status':'loading'}, namespace='/progress')
 
     print("Pipeline started")
     result = pipeline(file_path, datetime.strptime(acquisition_date, '%Y-%m-%dT%H:%M:%S'), duration, fs)
 
-    # progress_data['pipeline'] = 1
-    # send_progress(progress_data)  # Send progress update to frontend
+    socketio.emit('progress', {'percent':75, 'message' : 'Pipeline finished', 'status':'loading'}, namespace='/progress')
 
     # Step 4: Write the result of detection to the database
     
+    socketio.emit('progress', {'percent':75 , 'message' : 'Writing detections ...', 'status':'loading'}, namespace='/progress')
+
     for det in result:
         Database.add_detection(det["start"], det["end"], det["confidence"], det["id_species"], id_file)
 
@@ -231,19 +242,15 @@ def handle_upload():
         print("Detections added to database")
     else:
         print("No detections")
-    # progress_data['write_detection'] = 1
-    # send_progress(progress_data)  # Send progress update to frontend
 
     Database.close_connexion()
-    # Database.open_connexion()
-    # Database.add_project(project_name, acquisition_date, depth, lat, long)
-    # id_project = Database.get_projects(name=project_name)["id_project"]
-    # Database.add_file(secure_filename(f.filename), acquisition_date, duration, fs, app.config['UPLOAD_PATH'], id_project)
-    # Database.close_connexion()
 
-    return render_template('account.html')
+    socketio.emit('progress', {'percent':100, 'message' : 'Detections written', 'status':'loading'}, namespace='/progress')
+
+    socketio.emit('progress', {'percent':100, 'message' : 'Progress finished', 'status':'complete'}, namespace='/progress')
+
+    return '', 200
     
-
 @app.route('/form', methods=['POST'])
 def handle_form():
     title = request.form.get('title')
@@ -253,4 +260,4 @@ def handle_form():
 if __name__ == "__main__":
     user = None
     state = None
-    app.run(debug=True, port=5001)
+    socketio.run(app=app, debug=True, port=5001)

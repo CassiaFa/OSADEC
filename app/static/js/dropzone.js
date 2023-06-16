@@ -82,6 +82,10 @@ function handleSubmit(event) {
       console.log('File selected');
       console.log(formData); // Log form data
       uploadFile(formData); // Send form data with file
+
+      document.getElementById("upload-form").style.display = "none";
+      document.getElementById("progress-bar").style.display = "block";
+
     } else {
       // Handle case where no file is selected
       console.log('No file selected');

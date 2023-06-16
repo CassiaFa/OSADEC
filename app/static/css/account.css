@@ -213,8 +213,41 @@ input {
 input[type="file"] {
     display: none;
 }
+/* ================================= */
+/*            Progress bar           */
+/* ================================= */
 
-/* Progress bar */
+/* Progress bar container */
+.progress {
+    width: 100%;
+    height: 20px;
+    background-color: #f2f2f2;
+    border: 2px solid blue;
+    border-radius: 4px;
+    margin-bottom: 10px;
+  }
+  
+  /* bar */
+  #bar {
+    height: 100%;
+    background-color: blue;
+    border-radius: 4px;
+    transition: width 0.3s ease-in-out;
+  }
+  
+  /* Progress status text */
+  .progress-status {
+    margin-top: 5px;
+  }
+
+  #percent{
+    height: 100%;
+    background-color: blue;
+    border-radius: 4px;
+    transition: width 0.3s ease-in-out;
+  }
+
+/* Progress bar
 
 .container {
     margin: 100px auto;
@@ -253,4 +286,4 @@ input[type="file"] {
 #deconnexion {
     padding-top: 3em;
     text-align: center;
-}
+} */

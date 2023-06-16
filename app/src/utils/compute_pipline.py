@@ -142,11 +142,8 @@ def compute_spectro(filepath, start, stop, fs, img_name, path):
 
     spectro = Spectrogram(s=s, fs=fs, img_name=img_name)
 
-    # Path to the image
-    img_path = os.path.join(path, img_name)
-
     # Save temporary image
-    spectro.save_img(path=img_path)
+    spectro.save_img(path=path)
 
     return spectro
 

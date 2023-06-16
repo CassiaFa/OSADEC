@@ -6,6 +6,33 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/account.css') }}">
     <script type="module" src="{{ url_for('static', filename='js/script_tab.js') }}"></script>
     <script type="module" src="{{ url_for('static', filename='js/dropzone.js') }}"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/4.3.1/socket.io.min.js"></script>
+    <script>
+        var socket = io.connect('http://localhost:5001/progress');
+
+        socket.on('connect', function(){
+            console.log('Socket connected');
+        });
+
+        socket.on('progress', function(data){
+            console.log(data.message);
+            var percent = data.percent;
+            var message = data.message;
+            var status = data.status;
+
+            // Update the progress bar with the received values
+            var progressBar = document.getElementById("bar");
+            var progressStatus = document.getElementById("progress-status");
+            progressBar.style.width = percent + '%';
+            progressStatus.textContent = message;
+
+            if (status == 'complete'){
+                window.location.href = window.location.href;
+                // window.location.reload();
+            }
+        });
+        
+    </script>
 {% endblock %}  
 
 {% block content %}
@@ -35,10 +62,10 @@
                     </tr>
                     <tr>
                         <td>Registration date:</td>
-                        <td>{{ user['registration_date'].strftime('%Y-%m-%d') }}</td>
+                        <td>{{ user['registration_date'] }}</td>
                     </tr>
                     <tr>
-                        <td colspan="2" id="deconnexion"><a class="header-signin" href="{{ url_for('index', deconexion='deconnected') }}">Deconnexion</a></td>
+                        <td colspan="2" id="deconnexion"><a class="header-signin" href="{{ url_for('index', deconnexion='deconnected') }}">Deconnexion</a></td>
                     </tr>
                 </tbody>
             </table>
@@ -79,7 +106,11 @@
                     </div>
                     <input type="submit" id="submit" value="Upload and analyse">
                     <p id="obligation">* Required fields</p>
-                  </form>
+                </form>
+                <div id="progress-bar" style="display:none;">
+                    <div id="progress" class="progress"><div id="bar"></div></div>
+                    <p id="progress-status" class="progress-status"></p>
+                </div>
             </div>
             <div class="dashboard explore" style="display:none;">
                 <h1 class="title_form">List of files</h1>

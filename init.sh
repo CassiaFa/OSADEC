@@ -59,6 +59,9 @@ else
     echo "Env file created"
 fi
 
+
+wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=FILEID' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=1j5GnQtjiScio7wB8TSN31St-v6pgmPOo" -O ./app/models/latest_lowfreq_faster-rcnn.pth && rm -rf /tmp/cookies.txt
+
 docker-compose up -d
 
 address=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' osadec)

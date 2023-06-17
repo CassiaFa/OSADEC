@@ -85,7 +85,7 @@ def download_file(type, file, id=None):
         for row in result:
             data.append([row['start'].strftime("%y-%m-%d %H:%M:%S"), row['stop'].strftime("%y-%m-%d %H:%M:%S"), row['confidence']])
 
-        df = pd.DataFrame(data, columns=['start', 'end', 'confidence'], index=None)
+        df = pd.DataFrame(data, columns=['start', 'end', 'confidence'], index=False)
 
         resp = make_response(df.to_csv())
 

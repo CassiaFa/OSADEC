@@ -106,7 +106,15 @@ def account():
     global state
 
     if isinstance(user, dict):
-        return render_template('account.html', user=user)
+        Database.open_connexion()
+
+        files = Database.get_files()
+                
+        projects = [p["name"] for p in Database.get_projects()]
+
+        Database.close_connexion()
+
+        return render_template('account.html', user=user, files=files, projects=projects)
     else :
 
         state = request.values.get('state')

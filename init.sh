@@ -31,7 +31,15 @@ if [ -f "./app/.env" ]; then
         echo "ENCODING=latin-1" >> ./app/.env
         echo "Encoding created"
     fi
-    
+
+    if grep -q "SOCKET_KEY" ./app/.env; then
+        echo "Socket Key already exists"
+    else
+        s_key=`tr -dc 'A-Za-z0-9!"#$%&'\''()*+,-./:;<=>?@[\]^_{|}~' </dev/urandom | head -c 10`
+        echo "SOCKET_KEY=${s_key}" >> ./app/.env
+        echo "Socket key created"
+    fi
+
     if grep -q "UPLOAD_FOLDER" ./app/.env; then
         echo "Upload folder variable already exists"
     else
@@ -44,6 +52,8 @@ else
     e_key=`tr -dc 'A-Za-z0-9!"#$%&'\''()*+,-./:;<=>?@[\]^_{|}~' </dev/urandom | head -c 20`
     echo "ENCRYPT_KEY=${e_key}" >> "./app/.env"
     echo "ENCODING=latin-1" >> "./app/.env"
+    s_key=`tr -dc 'A-Za-z0-9!"#$%&'\''()*+,-./:;<=>?@[\]^_{|}~' </dev/urandom | head -c 10`
+    echo "SOCKET_KEY=${s_key}" >> ./app/.env
     echo "UPLOAD_FOLDER=./bucket" >> "./app/.env"
 
     echo "Env file created"

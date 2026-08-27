@@ -1,5 +1,4 @@
 # Use root/example as user/password credentials
-version: '3.1'
 
 services:
 
@@ -7,17 +6,21 @@ services:
     container_name: osadec
     build: ./app
     restart: always
-    links:
-      - "db"
+    depends_on:
+      - db
     ports:
-      - "5001:5001"
+      # host:container — the app listens on 5000 inside the container.
+      # Host 5000 is often already taken (other dev servers), so publish on 5001.
+      - "5001:5000"
     volumes:
       - ./app/bucket:/osadec/bucket
       - ./app/tmp:/osadec/tmp
       - ./app/models:/osadec/models
 
   db:
-    image: mysql
+    # Pinned: the committed data directory in ./db/osadecdb was created by MySQL 8.0
+    # and will not start cleanly under mysql:latest (9.x).
+    image: mysql:8.0
     restart: always
     container_name: osadecdb
     command: --secure-file-priv=/var/lib/mysql-files
@@ -31,9 +34,6 @@ services:
     ports:
       # <Port exposed>:<MySQL port running inside container>
       - '3307:3306'
-    expose:
-      # Open port 3306 on the container
-      - '3307'
     volumes:
       # Where data will be persisted
       - ./db/osadecdb:/var/lib/mysql

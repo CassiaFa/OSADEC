@@ -60,10 +60,26 @@ else
 fi
 
 
-wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=FILEID' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=1j5GnQtjiScio7wB8TSN31St-v6pgmPOo" -O ./app/models/latest_lowfreq_faster-rcnn.pth && rm -rf /tmp/cookies.txt
+MODEL_FILE="./app/models/latest_lowfreq_faster-rcnn.pth"
+MODEL_ID="1j5GnQtjiScio7wB8TSN31St-v6pgmPOo"
 
-docker-compose up -d
+# Only download the model weights if they are missing. A previous version of this
+# script re-ran the download every time and could overwrite a valid file with a
+# Google Drive error page, then abort the whole script.
+if [ -s "$MODEL_FILE" ]; then
+    echo "Model weights already present"
+else
+    echo "Downloading model weights ..."
+    wget --no-check-certificate \
+        "https://drive.usercontent.google.com/download?id=${MODEL_ID}&export=download&confirm=t" \
+        -O "$MODEL_FILE" \
+        || echo "WARNING: model download failed. Put the .pth file at $MODEL_FILE manually."
+fi
 
-address=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' osadec)
+if docker compose version >/dev/null 2>&1; then
+    docker compose up -d --build
+else
+    docker-compose up -d --build
+fi
 
-echo "To access the app, visit http://$address:5000"
+echo "To access the app, visit http://localhost:5000"

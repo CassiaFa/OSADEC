@@ -85,9 +85,9 @@ def download_file(type, file, id=None):
         for row in result:
             data.append([row['start'].strftime("%y-%m-%d %H:%M:%S"), row['stop'].strftime("%y-%m-%d %H:%M:%S"), row['confidence']])
 
-        df = pd.DataFrame(data, columns=['start', 'end', 'confidence'], index=False)
+        df = pd.DataFrame(data, columns=['start', 'end', 'confidence'])
 
-        resp = make_response(df.to_csv())
+        resp = make_response(df.to_csv(index=False))
 
         resp.headers["Content-Disposition"] = f"attachment; filename={file[:-4]}.csv"
 
@@ -269,4 +269,5 @@ def handle_form():
     return 'file uploaded and form submit<br>title: %s<br> description: %s' % (title, description)
 
 if __name__ == "__main__":
-    socketio.run(app=app, debug=True, host='0.0.0.0', port=5000)
+    socketio.run(app, debug=True, host='0.0.0.0', port=5000,
+                 allow_unsafe_werkzeug=True)

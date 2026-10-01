@@ -1,6 +1,7 @@
 import os
 import errno
 import re
+import uuid
 
 from datetime import datetime, timedelta
 import numpy as np
@@ -151,16 +152,24 @@ def compute_spectro(filepath, start, stop, fs, img_name, path, freq_min=15, freq
 
     return spectro
 
-def get_results(result, spectro, detection, spectro_start, class_names):
+def get_results(result, spectro, detection, spectro_start, class_names, species_map):
 
     """
     Function to check and get the results of the detection.
-    
+
     Args:
         result : (list) List of numpy arrays representing the results of the detection.
         spectro : (Spectrogram) Spectrogram object.
         detection : (list) List of detected objects.
         spectro_start : (datetime) Start time of spectrogram.
+        class_names : (list[str]) Model class names (`model.CLASSES`), in the
+            same order as `result`.
+        species_map : (dict[str, int]) Maps a species' `english_name` (as used
+            by `class_names`) to its `id_species` in the `SPECIES` table. Built
+            once (from `Database.get_categories()`) by the caller rather than
+            queried here on every call, so `pipeline()` (called once per
+            analysis window) doesn't need a live database connection open for
+            its whole duration - see `app.py`'s `_run_analysis_job`.
 
     Returns:
         detection : (list) List of detected objects.
@@ -172,18 +181,15 @@ def get_results(result, spectro, detection, spectro_start, class_names):
         >>> spectro_start = 0
         >>> result = [np.array([[1,2,3,4,5],[6,7,8,9,10]]), np.array([[1,2,3,4,5],[6,7,8,9,10]])]
         >>> spectro = Spectrogram(s=np.array([[1,2,3,4,5],[6,7,8,9,10]]), fs=44100, img_name="spectrogram.png")
-        >>> detection = get_results(result, spectro, detection, spectro_start)
+        >>> species_map = {"class_a": 1}
+        >>> detection = get_results(result, spectro, detection, spectro_start, ["class_a"], species_map)
 
     """
 
     for i, name in enumerate(class_names):
 
-        # Database.open_connexion()
-
         # Get the id of the class
-        id_class = Database.get_categories(english_name=name)["id_species"]
-
-        # Database.close_connexion()
+        id_class = species_map[name]
 
         if result[i].shape[0] == 0:
             continue
@@ -209,7 +215,57 @@ def get_results(result, spectro, detection, spectro_start, class_names):
     return detection
 
 
-def pipeline(filepath: str, date: datetime, duration: int, fs: int):
+def compute_windows(duration, sec=300):
+    """
+    Computes the list of `(start, end)` offsets (seconds, relative to the start
+    of the file) on which the detection pipeline should run.
+
+    For files at least `sec` seconds long, this mirrors the historical
+    behaviour: fixed-size `sec`-second windows stepping by `sec`, with a final
+    window anchored to the end of the file so every window has the same width
+    (this means the last window overlaps the previous one whenever `duration`
+    is not an exact multiple of `sec` - re-detecting a few seconds of audio
+    rather than skip them, which was already the pre-redesign behaviour).
+
+    For files shorter than `sec` seconds, returns a single window covering the
+    whole file (`(0, duration)`) instead of the fixed-size final window used
+    above. Before this fix, `pipeline()` always computed that final window as
+    `(duration - sec, duration)`: for a file shorter than `sec` seconds this is
+    a negative start offset, which `librosa.load(offset=..., duration=...)`
+    cannot honour (it raises / misbehaves) - this was the "short file" bug
+    tracked in docs/redesign/ROADMAP.md (Phase 5).
+
+    Args:
+        duration (float): Duration of the file, in seconds.
+        sec (int): Target window width, in seconds (default 300, matching the
+            historical pipeline and `compute_spectro`'s default frequency band
+            rendering).
+
+    Returns:
+        list[tuple[float, float]]: `(start, end)` offsets in seconds. Empty if
+        `duration <= 0`.
+    """
+
+    duration = float(duration)
+
+    if duration <= 0:
+        return []
+
+    if duration <= sec:
+        return [(0.0, duration)]
+
+    windows = []
+    start = 0.0
+    while start + sec < duration:
+        windows.append((start, start + sec))
+        start += sec
+
+    windows.append((duration - sec, duration))
+
+    return windows
+
+
+def pipeline(filepath: str, date: datetime, duration: int, fs: int, progress_callback=None, species_map=None):
     """
     Runs a pipeline to detect objects in a spectrogram generated from a given audio file.
 
@@ -218,6 +274,19 @@ def pipeline(filepath: str, date: datetime, duration: int, fs: int):
         date: A datetime object representing the start time of the audio file.
         duration: An integer representing the duration of the audio file in seconds.
         fs: An integer representing the frequency of the audio file.
+        progress_callback: Optional callable `(window_index, window_count)`,
+            called (1-indexed) after each analysis window has been processed.
+            Used by the Phase 5 background upload task to report per-window
+            progress over Socket.IO; left to a no-op by default so direct/CLI
+            callers (e.g. `__main__` below) are unaffected.
+        species_map: Optional `{english_name: id_species}` dict (see
+            `get_results`). If omitted, it is fetched once here via a short
+            `Database.open_connexion()`/`close_connexion()` round trip before
+            the detection loop starts. Callers that run `pipeline()` from a
+            background thread/task alongside other database activity (e.g.
+            `app.py`'s `_run_analysis_job`) should instead fetch it themselves
+            and pass it in, so `pipeline()` never needs its own database
+            connection open for the whole (potentially long) inference run.
 
     Returns:
         A list of dictionaries, where each dictionary corresponds to a detected object and contains the following keys:
@@ -238,6 +307,16 @@ def pipeline(filepath: str, date: datetime, duration: int, fs: int):
 
     model = load_detector()
 
+    if species_map is None:
+        Database.open_connexion()
+        try:
+            categories = Database.get_categories()
+        finally:
+            Database.close_connexion()
+        if isinstance(categories, dict):
+            categories = [categories]
+        species_map = {c["english_name"]: c["id_species"] for c in categories}
+
     # Folder of temporary image
     i_path = "./tmp"
 
@@ -245,8 +324,12 @@ def pipeline(filepath: str, date: datetime, duration: int, fs: int):
     if not os.path.exists(i_path):
         os.makedirs(i_path)
 
-    # Name of temporary image
-    img_name = "tmp.png"
+    # Name of the temporary image used for inference. Unique per call (rather
+    # than the historical shared "tmp.png") because Phase 5 runs `pipeline()`
+    # from a Socket.IO background task: two uploads analysed concurrently (or
+    # a slow background job overlapping a new upload) must not read/write the
+    # same file on disk.
+    img_name = f"pipeline_{uuid.uuid4().hex}.png"
 
     img_path = os.path.join(i_path, img_name)
 
@@ -254,35 +337,20 @@ def pipeline(filepath: str, date: datetime, duration: int, fs: int):
 
     if not os.path.exists(filepath):
         raise  FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), filepath)
-    
-    # timestamp of file
-    timestamp_file = datetime.timestamp(date)
 
-    # end date of file
-    end_file = date + timedelta(seconds=duration)
+    windows = compute_windows(duration, sec=300)
+    window_count = len(windows)
 
-    # size of file loaded in seconds
-    sec = 300
-    spectro_time = timedelta(seconds=sec) # duration of spectro
+    for index, (w_start, w_end) in enumerate(windows, start=1):
 
-    # spectro start
-    spectro_start = date
-
-    # spectro end
-    spectro_end = spectro_start + timedelta(seconds=sec)
-
-    while spectro_end < end_file:
-        
-        # spectro start and end
-        sample_start = int(datetime.timestamp(spectro_start) - timestamp_file)
-        sample_end =  int(datetime.timestamp(spectro_end) - timestamp_file)
+        spectro_start = date + timedelta(seconds=w_start)
 
         # Get the spectrogramme object
-        spectro = compute_spectro(filepath, sample_start, sample_end, fs, img_name, i_path)
-        
+        spectro = compute_spectro(filepath, w_start, w_end, fs, img_name, i_path)
+
         result = inference_detector(model, img_path)
 
-        detection = get_results(result, spectro, detection, spectro_start, model.CLASSES)
+        detection = get_results(result, spectro, detection, spectro_start, model.CLASSES, species_map)
 
         # Close the spectro figure
         spectro.close()
@@ -290,29 +358,8 @@ def pipeline(filepath: str, date: datetime, duration: int, fs: int):
         # Delete spectro variables
         del spectro
 
-        # spectro start and end
-        spectro_start += spectro_time
-        spectro_end += spectro_time
-
-    
-    spectro_start = end_file - timedelta(seconds=sec)
-    spectro_end = end_file
-
-    # spectro start and end
-    sample_start = int(datetime.timestamp(spectro_start) - timestamp_file)
-    sample_end =  int(datetime.timestamp(spectro_end) - timestamp_file)
-
-    spectro = compute_spectro(filepath, sample_start, sample_end, fs, img_name, i_path)
-    
-    result = inference_detector(model, img_path)
-        
-    detection = get_results(result, spectro, detection, spectro_start, model.CLASSES)
-
-    # Close the spectro figure
-    spectro.close()
-
-    # Delete spectro variables
-    del spectro
+        if progress_callback is not None:
+            progress_callback(index, window_count)
 
     if os.path.exists(img_path):
         os.remove(img_path)

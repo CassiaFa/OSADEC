@@ -10,8 +10,19 @@
     <script>
         var socket = io.connect('http://'+ document.domain + ':' + location.port +'/progress');
 
+        // Phase 5 (docs/redesign/ROADMAP.md): the server now targets progress
+        // events at this client's own Socket.IO room (named after its sid)
+        // instead of broadcasting to every connected client. dropzone.js reads
+        // this global to attach it to the /upload request so the server knows
+        // which room to emit to. Socket.IO assigns a new sid on every
+        // (re)connect, so this is refreshed each time 'connect' fires.
         socket.on('connect', function(){
             console.log('Socket connected');
+            window.socketProgressId = socket.id;
+        });
+
+        socket.on('disconnect', function(){
+            window.socketProgressId = null;
         });
 
         socket.on('progress', function(data){
@@ -25,6 +36,14 @@
             var progressStatus = document.getElementById("progress-status");
             progressBar.style.width = percent + '%';
             progressStatus.textContent = message;
+
+            if (status == 'error'){
+                // Analysis failed server-side (see server logs): leave the
+                // panel visible with the error message instead of reloading
+                // into a page that won't have any new detections.
+                console.error('Analysis failed:', message);
+                return;
+            }
 
             if (status == 'complete'){
                 window.location.href = window.location.href;

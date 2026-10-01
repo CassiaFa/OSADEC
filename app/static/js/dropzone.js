@@ -110,16 +110,39 @@ function handleSubmit(event) {
 // ================
 function uploadFile(formData) {
   console.log(formData);
-  
+
+  // Phase 5 (docs/redesign/ROADMAP.md): progress is now emitted by the server
+  // to this client only, targeted at the Socket.IO connection id of its own
+  // /progress namespace connection (set on `window.socketProgressId` by the
+  // inline script in templates/account.html). Without it the server has no
+  // single legitimate recipient to target and simply won't emit progress
+  // events (the upload itself still completes).
+  if (window.socketProgressId) {
+    formData.append('sid', window.socketProgressId);
+  }
+
   fetch('/upload', {
     method: 'POST',
     body: formData
   })
-  .then(response => {
-    // Handle response from server
+  .then(response => response.json().catch(() => ({})).then(data => ({ ok: response.ok, data })))
+  .then(({ ok, data }) => {
+    // The request now only confirms that the analysis job was accepted
+    // (202, with a job_id) or rejected (4xx); the actual pipeline progress
+    // and completion arrive asynchronously via the 'progress' socket event
+    // handled in templates/account.html.
+    if (!ok) {
+      console.error('Upload rejected', data);
+      var progressStatus = document.getElementById("progress-status");
+      if (progressStatus) {
+        progressStatus.textContent = data.message || 'Upload failed.';
+      }
+      return;
+    }
+    console.log('Analysis job accepted', data);
   })
   .catch(error => {
-    // Handle error
+    console.error('Upload error', error);
   });
 }
 

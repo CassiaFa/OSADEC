@@ -8,6 +8,12 @@
     <script type="module" src="{{ url_for('static', filename='js/dropzone.js') }}"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/4.3.1/socket.io.min.js"></script>
     <script>
+        // Template used to build the "go to the viewer" link once an upload
+        // completes, without hardcoding the URL scheme in static JS. See
+        // static/js/dropzone.js (handleUploadProgress) which reads this and
+        // substitutes the real id_file in.
+        window.OSADEC_REVIEW_URL_TEMPLATE = "{{ url_for('record_review', id_file=0) }}";
+
         var socket = io.connect('http://'+ document.domain + ':' + location.port +'/progress');
 
         // Phase 5 (docs/redesign/ROADMAP.md): the server now targets progress
@@ -25,28 +31,14 @@
             window.socketProgressId = null;
         });
 
+        // All the DOM / step-panel logic lives in dropzone.js so this inline
+        // script stays limited to Socket.IO plumbing (connection id + event
+        // wiring). Phase 5 UI (ROADMAP.md): no more forced reload on
+        // 'complete' - the step panel + review link are updated in place.
         socket.on('progress', function(data){
             console.log(data.message);
-            var percent = data.percent;
-            var message = data.message;
-            var status = data.status;
-
-            // Update the progress bar with the received values
-            var progressBar = document.getElementById("bar");
-            var progressStatus = document.getElementById("progress-status");
-            progressBar.style.width = percent + '%';
-            progressStatus.textContent = message;
-
-            if (status == 'error'){
-                // Analysis failed server-side (see server logs): leave the
-                // panel visible with the error message instead of reloading
-                // into a page that won't have any new detections.
-                console.error('Analysis failed:', message);
-                return;
-            }
-
-            if (status == 'complete'){
-                window.location.href = window.location.href;
+            if (window.OsadecUpload && window.OsadecUpload.handleProgress) {
+                window.OsadecUpload.handleProgress(data);
             }
         });
     </script>
@@ -94,46 +86,95 @@
             <div class="dashboard" style="display:block;" role="tabpanel">
 
                 <h1 class="title_form">Analyse a new file</h1>
-                <form id="upload-form" action="/upload" enctype="multipart/form-data" method="post" onsubmit="handleSubmit(event)">
-                    <div id="project" class="element_form form-row">
-                        <div class="field">
-                            <label for="project_name">Choose or write a project name *</label>
-                            <input class="input" list="project_name" id="project_name" name="project" placeholder="Project name" required>
-                            <datalist id="project_name">
-                                {% for p in projects %}
-                                    <option value="{{ p }}">
-                                {% endfor %}
-                            </datalist>
+                <p class="field-hint" style="margin-top: calc(-1 * var(--space-3)); margin-bottom: var(--space-4);">Upload a WAV file &mdash; OSADEC generates the spectrogram and runs detection automatically.</p>
+
+                <div class="upload-layout" id="upload-layout">
+                    <div class="card card-body upload-dropzone-card">
+                        <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-label="Choose a .wav file to upload">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V5M8 9l4-4 4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+                            <p id="dropzone-text">Drag and drop a .wav file here, or click to select one</p>
+                            <input type="file" id="file" name="file" accept=".wav" form="upload-form" required>
                         </div>
-                        <div class="field">
-                            <label for="acquisition_date">Date of acquisition *</label>
-                            <input class="input" type="datetime-local" id="acquisition_date" name="acquisition_date" step="1" required>
-                        </div>
-                    </div>
-                    <div id="coordinate" class="element_form form-row">
-                        <div class="field">
-                            <label for="depth">Depth (m) *</label>
-                            <input class="input" type="number" id="depth" min="0" max="11022" name="depth" placeholder="Depth" required>
-                        </div>
-                        <div class="field">
-                            <label for="lat">Latitude *</label>
-                            <input class="input" type="number" id="lat" step=".000001" min="-90" max="90" name="lat" placeholder="Latitude" required>
-                        </div>
-                        <div class="field">
-                            <label for="long">Longitude *</label>
-                            <input class="input" type="number" id="long" step=".000001" max="180" min="-180" name="long" placeholder="Longitude" required>
+                        <div id="selected-file" class="selected-file" hidden>
+                            <img src="{{ url_for('static', filename='images/sound_file_icon.png') }}" alt="" width="24" height="24">
+                            <div class="selected-file__info">
+                                <span id="selected-file-name" class="value"></span>
+                                <span id="selected-file-size" class="field-hint"></span>
+                            </div>
+                            <button type="button" id="selected-file-remove" class="btn btn-ghost" aria-label="Remove selected file">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                            </button>
                         </div>
                     </div>
-                    <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-label="Choose a .wav file to upload">
-                        <p>Drag and drop a .wav file here, or click to select one</p>
-                        <input type="file" id="file" name="file" accept=".wav" onchange="handleFileSelect(this)" required>
+
+                    <div class="card card-body upload-meta-card">
+                        <form id="upload-form" action="/upload" enctype="multipart/form-data" method="post">
+                            <div class="form-grid-2">
+                                <div class="field field-span-2" id="project">
+                                    <label for="project_name">Choose or write a project name *</label>
+                                    <input class="input" list="project_name" id="project_name" name="project" placeholder="Project name" required>
+                                    <datalist id="project_name">
+                                        {% for p in projects %}
+                                            <option value="{{ p }}">
+                                        {% endfor %}
+                                    </datalist>
+                                </div>
+                                <div class="field">
+                                    <label for="acquisition_date">Date of acquisition *</label>
+                                    <input class="input" type="datetime-local" id="acquisition_date" name="acquisition_date" step="1" required>
+                                </div>
+                                <div class="field">
+                                    <label for="depth">Depth (m) *</label>
+                                    <input class="input" type="number" id="depth" min="0" max="11022" name="depth" placeholder="Depth" required>
+                                </div>
+                                <div class="field">
+                                    <label for="lat">Latitude *</label>
+                                    <input class="input" type="number" id="lat" step=".000001" min="-90" max="90" name="lat" placeholder="Latitude" required>
+                                </div>
+                                <div class="field">
+                                    <label for="long">Longitude *</label>
+                                    <input class="input" type="number" id="long" step=".000001" max="180" min="-180" name="long" placeholder="Longitude" required>
+                                </div>
+                            </div>
+                            <button type="submit" id="submit" class="btn btn-primary">Upload and analyse</button>
+                            <p id="obligation" class="field-hint">* Required fields</p>
+                        </form>
                     </div>
-                    <button type="submit" id="submit" class="btn btn-primary">Upload and analyse</button>
-                    <p id="obligation" class="field-hint">* Required fields</p>
-                </form>
-                <div id="progress-bar" style="display:none;">
-                    <div id="progress" class="progress-track"><div id="bar" class="progress-track__bar"></div></div>
-                    <p id="progress-status" class="progress-status"></p>
+                </div>
+
+                <div id="progress-panel" class="card card-body" hidden>
+                    <div class="upload-steps" role="list" aria-label="Analysis progress">
+                        <div class="upload-step" data-step="uploaded" data-state="pending" role="listitem">
+                            <span class="upload-step__icon" aria-hidden="true"></span>
+                            <span class="upload-step__label">Uploaded</span>
+                        </div>
+                        <div class="upload-step__connector" aria-hidden="true"></div>
+                        <div class="upload-step" data-step="analysing" data-state="pending" role="listitem">
+                            <span class="upload-step__icon" aria-hidden="true"></span>
+                            <span class="upload-step__label">Spectrogram &amp; detection</span>
+                        </div>
+                        <div class="upload-step__connector" aria-hidden="true"></div>
+                        <div class="upload-step" data-step="done" data-state="pending" role="listitem">
+                            <span class="upload-step__icon" aria-hidden="true"></span>
+                            <span class="upload-step__label">Done</span>
+                        </div>
+                    </div>
+
+                    <div id="progress-bar">
+                        <div id="progress" class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-labelledby="progress-status"><div id="bar" class="progress-track__bar"></div></div>
+                        <p id="progress-status" class="progress-status" aria-live="polite">Uploading&hellip;</p>
+                    </div>
+
+                    <div id="upload-success" class="notice notice-success" hidden tabindex="-1">
+                        <p>Analysis complete. The record is ready for review.</p>
+                        <a id="review-link" class="btn btn-primary" href="#">Review detections</a>
+                        <button type="button" id="upload-another" class="btn btn-ghost">Upload another file</button>
+                    </div>
+
+                    <div id="upload-error" class="notice notice-danger" role="alert" hidden tabindex="-1">
+                        <p id="upload-error-message"></p>
+                        <button type="button" id="upload-retry" class="btn btn-secondary">Upload another file</button>
+                    </div>
                 </div>
             </div>
             <div class="dashboard explore" style="display:none;" role="tabpanel">

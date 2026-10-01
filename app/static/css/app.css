@@ -808,6 +808,20 @@ textarea:focus-visible,
   color: color-mix(in oklch, var(--color-warning) 60%, var(--color-ink));
 }
 
+.notice-success {
+  background: var(--color-success-soft);
+  color: color-mix(in oklch, var(--color-success) 55%, var(--color-ink));
+}
+
+.notice-danger {
+  background: var(--color-danger-soft);
+  color: color-mix(in oklch, var(--color-danger) 55%, var(--color-ink));
+}
+
+.notice p:first-child { margin-top: 0; }
+.notice p:last-of-type { margin-bottom: 0; }
+.notice .btn { margin-top: var(--space-3); margin-right: var(--space-2); }
+
 /* -------------------------------------------------------------------------
    Dashboard & explorer (Phase 2): stat cards, record rows/thumbnails,
    species bar chart, model summary, filter bar, pagination.
@@ -1010,4 +1024,16 @@ a.record-row:hover { background: var(--color-subtle); text-decoration: none; }
   .project-switcher { max-width: 120px; }
   .stat-grid { grid-template-columns: 1fr 1fr; }
   .app-view__header { flex-wrap: wrap; }
+}
+
+@media (max-width: 480px) {
+  /* Narrow phones (~375-400px): the rail (64px) + brand + divider + project
+     switcher + account (avatar + sign out) no longer all fit on one row even
+     with the 600px tightening above. Drop the text brand (the rail logo
+     already carries it) and the divider, and shrink the switcher further. */
+  .app-topbar { gap: var(--space-1); padding: 0 var(--space-2); }
+  .app-topbar__brand,
+  .app-topbar__divider { display: none; }
+  .project-switcher { max-width: 96px; padding-right: var(--space-5); }
+  .app-topbar__account { gap: var(--space-2); }
 }

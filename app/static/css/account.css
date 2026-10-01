@@ -36,7 +36,7 @@
 }
 
 .user-table { border: none; }
-.user-table th, .user-table td { border: none; padding: var(--space-1) var(--space-2); white-space: normal; }
+.user-table th, .user-table td { border: none; padding: var(--space-1) var(--space-2); white-space: normal; overflow-wrap: anywhere; }
 .user-table th { background: transparent; color: var(--color-ink); font-size: 14px; text-align: center; padding-bottom: var(--space-2); }
 
 /* ================================= */
@@ -111,24 +111,165 @@
 /*          Upload form          */
 /* ============================= */
 
+.upload-layout {
+  display: flex;
+  gap: var(--space-5);
+  align-items: flex-start;
+}
+
+/* The `hidden` attribute is toggled from JS (static/js/dropzone.js) to swap
+   the form for the progress panel. The user-agent stylesheet's `[hidden] {
+   display: none }` rule is author-overridable by origin regardless of
+   specificity, so without this it loses to `.upload-layout { display: flex
+   }` above and both would render at once. */
+.upload-layout[hidden] { display: none; }
+
+.upload-dropzone-card {
+  width: 360px;
+  flex-shrink: 0;
+}
+
+.upload-meta-card { flex-grow: 1; min-width: 0; }
+
+.upload-dropzone-card .dropzone { margin: 0; }
+
+.selected-file {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+}
+.selected-file[hidden] { display: none; }
+
+.selected-file__info {
+  flex-grow: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.selected-file__info .value {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 #upload-form {
   display: flex;
   flex-direction: column;
-  max-width: 640px;
   gap: var(--space-2);
 }
 
-.element_form { margin-bottom: var(--space-2); }
-
-#upload-form .dropzone {
-  margin: var(--space-2) 0 var(--space-3);
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 var(--space-4);
 }
 
+.form-grid-2 .field-span-2 { grid-column: span 2; }
+
 #submit { align-self: flex-start; }
+
+/* ============================= */
+/*        Upload step panel      */
+/* ============================= */
+
+#progress-panel { margin-top: var(--space-5); }
+
+.upload-steps {
+  display: flex;
+  align-items: center;
+  margin-bottom: var(--space-5);
+}
+
+.upload-step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.upload-step__connector {
+  flex-grow: 1;
+  height: 1px;
+  background: var(--color-line);
+  margin: 0 var(--space-3);
+}
+
+.upload-step__icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--color-subtle);
+  position: relative;
+}
+
+.upload-step__label { font-size: 12px; color: var(--color-muted); }
+
+.upload-step[data-state="active"] .upload-step__icon {
+  background: var(--color-accent-soft);
+}
+.upload-step[data-state="active"] .upload-step__icon::after {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border-radius: 50%;
+  background: var(--color-accent);
+}
+.upload-step[data-state="active"] .upload-step__label { color: var(--color-ink); font-weight: 600; }
+
+.upload-step[data-state="done"] .upload-step__icon {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+.upload-step[data-state="done"] .upload-step__icon::after {
+  /* Drawn with a mask (rather than a hardcoded background-image colour) so
+     the checkmark follows --color-success into dark mode instead of staying
+     a fixed light-mode green. */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-color: var(--color-success);
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l4 4 10-10'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l4 4 10-10'/%3E%3C/svg%3E");
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: 12px 12px;
+  mask-size: 12px 12px;
+}
+.upload-step[data-state="done"] .upload-step__label { color: var(--color-ink); }
+
+.upload-step[data-state="error"] .upload-step__icon {
+  background: var(--color-danger-soft);
+}
+.upload-step[data-state="error"] .upload-step__icon::after {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border-radius: 50%;
+  background: var(--color-danger);
+}
+.upload-step[data-state="error"] .upload-step__label { color: var(--color-danger); font-weight: 600; }
 
 @media (max-width: 700px) {
   .user_field { flex-direction: column; padding: var(--space-4); }
   .user_info { width: 100%; }
   .tabs .tab-registers { overflow-x: auto; }
+  .upload-layout { flex-direction: column; }
+  .upload-dropzone-card { width: 100%; }
+}
+
+@media (max-width: 480px) {
+  .form-grid-2 { grid-template-columns: 1fr; }
+  .form-grid-2 .field-span-2 { grid-column: span 1; }
+  .upload-steps { flex-direction: column; align-items: flex-start; gap: var(--space-3); }
+  .upload-step__connector { display: none; }
 }
 

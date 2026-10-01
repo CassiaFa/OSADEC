@@ -177,18 +177,22 @@ class Database():
             time_max (str, optional): An optional string representing the maximum time to filter the detections by.
 
         Returns:
-            list[dict]: A list of dict containing the id, start and stop times of each detection, and the id of the detected species.
+            list[dict]: A list of dict containing the id, start and stop times, the id of the
+            detected species, the confidence, the frequency bounds (freq_min/freq_max) and the
+            review_status of each detection.
         """
 
         conditions = []
         params = []
 
         if id_file:
-            columns = "id_detection, start, stop, id_species, confidence"
+            columns = ("id_detection, start, stop, id_species, confidence, "
+                       "freq_min, freq_max, review_status")
             conditions.append("id_file=%s")
             params.append(id_file)
         else:
-            columns = "id_detection, start, stop, id_file, id_species, confidence"
+            columns = ("id_detection, start, stop, id_file, id_species, confidence, "
+                       "freq_min, freq_max, review_status")
 
         if time_min:
             conditions.append("start>=%s")

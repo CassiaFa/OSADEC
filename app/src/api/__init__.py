@@ -26,6 +26,12 @@ def health():
     return jsonify({"status": "ok"})
 
 
+# Phase 3 (docs/redesign/ROADMAP.md): spectrogram + detection endpoints. Imported
+# here (after `api_bp` is defined, before `init_api`/registration is called) so
+# that `records.py` can attach its routes to `api_bp` via `from . import api_bp`.
+from . import records  # noqa: E402,F401
+
+
 def _is_api_path(path):
     prefix = api_bp.url_prefix or ""
     return path == prefix or path.startswith(f"{prefix}/")
@@ -43,7 +49,8 @@ def init_api(app):
     @app.errorhandler(404)
     def _api_404(error):
         if _is_api_path(request.path):
-            return _json_error(404, "not_found", "The requested resource was not found.")
+            message = getattr(error, "description", None) or "The requested resource was not found."
+            return _json_error(404, "not_found", message)
         return error
 
     @app.errorhandler(400)
@@ -51,6 +58,13 @@ def init_api(app):
         if _is_api_path(request.path):
             message = getattr(error, "description", None) or "Bad request."
             return _json_error(400, "bad_request", message)
+        return error
+
+    @app.errorhandler(401)
+    def _api_401(error):
+        if _is_api_path(request.path):
+            message = getattr(error, "description", None) or "Authentication required."
+            return _json_error(401, "unauthorized", message)
         return error
 
     @app.errorhandler(500)

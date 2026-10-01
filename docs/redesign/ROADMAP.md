@@ -67,18 +67,21 @@ Bloque les phases par utilisateur et la revue de détections.
 
 ## Phase 1 — Shell applicatif & design system
 
-- [ ] Tokens de design : palette oklch (accent océan `#0b6a76`, corail détections
+- [x] Tokens de design : palette oklch (accent océan `#0b6a76`, corail détections
       `#e0623d`), typo IBM Plex Sans / Mono, espacements, rayons ; un seul
       `static/css/app.css` ; **dark mode** ; **responsive**.
-- [ ] Composants partagés : rail d'icônes (64 px), top bar + sélecteur de projet,
+- [x] Composants partagés : rail d'icônes (64 px), top bar + sélecteur de projet,
       boutons, champs, tableaux, pills de statut, dropzone.
-- [ ] `base.html` : navigation consciente de l'authentification (compte /
+- [x] `base.html` : navigation consciente de l'authentification (compte /
       déconnexion quand connecté), suppression du header commenté et du lien
       « Sign in » permanent.
-- [ ] Migrer `index`, `sign_in`, `sign_up`, `forgot-password` vers le nouveau style
+- [x] Migrer `index`, `sign_in`, `sign_up`, `forgot-password` vers le nouveau style
       (cf. écran `SignIn.dc.html`).
-- [ ] Implémenter réellement `/forgot-password` (aujourd'hui le formulaire POST vers
-      `/reset-password`, route inexistante) **ou** retirer le lien.
+- [x] Implémenter réellement `/forgot-password` (aujourd'hui le formulaire POST vers
+      `/reset-password`, route inexistante) **ou** retirer le lien. — décision : pas
+      de backend d'envoi d'email dans ce projet, donc le lien reste mais le
+      formulaire est remplacé par un message explicite (voir
+      `forgot-password.html`), plus de POST vers une route inexistante.
 
 ## Phase 2 — Dashboard & explorateur de records
 
@@ -94,19 +97,19 @@ Bloque les phases par utilisateur et la revue de détections.
 
 ## Phase 3 — Endpoint spectrogramme + données de détection
 
-- [ ] `GET /api/records/<id>/spectrogram?start=&end=&fmin=&fmax=` : rend un PNG à la
+- [x] `GET /api/records/<id>/spectrogram?start=&end=&fmin=&fmax=` : rend un PNG à la
       demande via la classe `Spectrogram` (`pixlabel.py`), **nom de fichier unique**
       (fin du `tmp.png` partagé), **cache** LRU/disque (clé = record + fenêtre).
       Renvoie aussi les bornes d'axes (échelle temps/fréquence) pour le client.
-- [ ] `GET /api/records/<id>/detections` : JSON
+- [x] `GET /api/records/<id>/detections` : JSON
       `[{id, t_start, t_end, f_min, f_max, confidence, species, review_status}]`,
       temps en **secondes relatives** (conversion depuis `DETECTIONS.start` −
       `FILES.date`).
-- [ ] `PATCH /api/detections/<id>` : `{review_status: confirmed|rejected|pending}`,
+- [x] `PATCH /api/detections/<id>` : `{review_status: confirmed|rejected|pending}`,
       renseigne `reviewed_by` / `reviewed_at`.
-- [ ] `GET /api/records/<id>/detections.csv` enrichi : ajouter `f_min`, `f_max`,
+- [x] `GET /api/records/<id>/detections.csv` enrichi : ajouter `f_min`, `f_max`,
       `species`, `review_status` (aujourd'hui `start,end,confidence` seulement).
-- [ ] Vérifier la calibration pixel → (temps, fréquence) : `Spectrogram.get_values`
+- [x] Vérifier la calibration pixel → (temps, fréquence) : `Spectrogram.get_values`
       dépend du transform matplotlib `transData` ; figer la géométrie du rendu pour
       que le client puisse re-projeter sans matplotlib.
 

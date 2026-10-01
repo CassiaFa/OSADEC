@@ -108,10 +108,10 @@ def load_detector(config_path=None, checkpoint_path=None):
 
     return model
 
-def compute_spectro(filepath, start, stop, fs, img_name, path):
-    
+def compute_spectro(filepath, start, stop, fs, img_name, path, freq_min=15, freq_max=200):
+
     """
-    Computes the spectrogram of the sound file given by `filepath`, from `start` to `stop` seconds, 
+    Computes the spectrogram of the sound file given by `filepath`, from `start` to `stop` seconds,
     with a sampling rate of `fs` Hz, and saves the resulting image with name `img_name` at `img_path`.
 
     Args:
@@ -121,6 +121,10 @@ def compute_spectro(filepath, start, stop, fs, img_name, path):
         fs: An integer representing the sampling rate (in Hz) of the sound file.
         img_name: A string representing the name of the image file to save the spectrogram to.
         img_path: A string representing the path to save the image file to.
+        freq_min: A float representing the lower bound (Hz) of the displayed frequency band
+            (default 15, matching the historical inference pipeline rendering).
+        freq_max: A float representing the upper bound (Hz) of the displayed frequency band
+            (default 200, matching the historical inference pipeline rendering).
 
     Returns:
         A Spectrogram object representing the spectrogram of the sound file.
@@ -140,7 +144,7 @@ def compute_spectro(filepath, start, stop, fs, img_name, path):
     s, fs = librosa.load(filepath, sr=2000, offset=start, duration=stop-start)
     # s, fs = sf.read(filepath, start=start, stop=stop)
 
-    spectro = Spectrogram(s=s, fs=fs, img_name=img_name)
+    spectro = Spectrogram(s=s, fs=fs, img_name=img_name, freq_min=freq_min, freq_max=freq_max)
 
     # Save temporary image
     spectro.save_img(path=path)

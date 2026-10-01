@@ -94,7 +94,8 @@ class Range:
 
 class Spectrogram():
 
-    def __init__(self, s, fs:int, img_name, nfft=2048*2, win_size=2000, overlap=90, cmap_color='Greys') -> None:
+    def __init__(self, s, fs:int, img_name, nfft=2048*2, win_size=2000, overlap=90, cmap_color='Greys',
+                 freq_min=15, freq_max=200) -> None:
         
         self.mw = 0.000844055830808625
 
@@ -158,14 +159,14 @@ class Spectrogram():
         plt.pcolormesh(segment_times, frequencies, log_spectro, cmap=cmap_color)
         plt.clim(vmin=min_color_val, vmax=max_color_val)
 
-        plt.ylim(15, 200)
+        plt.ylim(freq_min, freq_max)
 
         plt.axis('off')
         self.fig.tight_layout()
 
         self.width, self.height = self.fig.canvas.get_width_height()
 
-    
+
 
     def get_coordinates(self, start, fmin, end, fmax):
 
@@ -196,6 +197,57 @@ class Spectrogram():
         end, fmax = ax.transData.inverted().transform((x2, y2))
 
         return start, end, fmin, fmax
+
+    def axis_bounds(self):
+        """
+        Freezes the pixel <-> (time, frequency) geometry of the rendered figure so
+        that a client (browser, no matplotlib available) can reposition detection
+        boxes on the saved PNG without redoing any matplotlib/transform work.
+
+        The rendered figure (``axis('off')`` + ``tight_layout()``) does *not*
+        exactly fill the saved image: matplotlib still reserves a small margin
+        around the axes, and `pcolormesh` snaps the x-axis data limits to the
+        exact first/last STFT segment centers (not to the raw ``start``/``end``
+        passed in), which is itself a hair narrower than the full capture window.
+        Both effects are small (observed ~0.5s / ~1% of the image height) but not
+        negligible at pixel resolution, so they must be read back from the actual
+        axes rather than assumed to be zero.
+
+        Returns a dict with:
+            - time_start / time_end (seconds, matplotlib's actual x data limits)
+            - freq_min / freq_max (Hz, the y data limits, i.e. the requested
+              frequency band)
+            - pixel_x / pixel_y / pixel_width / pixel_height: the bounding box,
+              in standard top-left-origin image pixel coordinates (same
+              convention as the saved PNG), of the rectangle spanned by
+              [time_start, time_end] x [freq_min, freq_max].
+            - image_width / image_height: full PNG dimensions in pixels.
+
+        Given these numbers, any point (t, f) maps to image pixel coordinates as:
+            px = pixel_x + (t - time_start) / (time_end - time_start) * pixel_width
+            py = pixel_y + (freq_max - f) / (freq_max - freq_min) * pixel_height
+        (y is inverted because frequency increases upward while image rows
+        increase downward). This is exactly the formula used by
+        `get_coordinates`/`get_values` above, exposed here without requiring a
+        live matplotlib Figure.
+        """
+        ax = self.fig.gca()
+        t0, t1 = ax.get_xlim()
+        f0, f1 = ax.get_ylim()
+        px_x, px_y, px_w, px_h = self.get_coordinates(t0, f0, t1, f1)
+
+        return {
+            "time_start": float(t0),
+            "time_end": float(t1),
+            "freq_min": float(f0),
+            "freq_max": float(f1),
+            "pixel_x": float(px_x),
+            "pixel_y": float(px_y),
+            "pixel_width": float(px_w),
+            "pixel_height": float(px_h),
+            "image_width": int(self.width),
+            "image_height": int(self.height),
+        }
 
     def save_img(self, path=None):
         if path:

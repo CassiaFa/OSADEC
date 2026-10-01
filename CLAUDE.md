@@ -2,7 +2,7 @@
 
 Détecteur d'appels de mammifères marins dans des fichiers `.wav` : app Flask +
 MySQL (docker-compose), inférence Faster R-CNN (mmdet/mmcv) sur spectrogramme.
-Projet 2023, relancé en 2026, actuellement en cours de **redesign** (voir plus bas).
+Projet 2023, relancé en 2026, **redesign terminé le 2026-10-01** (voir plus bas).
 
 ## Faire tourner le projet
 
@@ -12,84 +12,95 @@ docker exec -it osadec bash
 python src/utils/db_tools.py     # vérifie la validité de la base
 ```
 App servie sur `http://localhost:5001` (socket.io sur le même process Flask).
+Tests : `docker exec osadec python -m pytest tests -v` (voir `docs/testing.md`).
+
+**Docker build** : `app/Dockerfile` compile `mmcv-full` depuis les sources (pas de
+wheel py3.11, voir `docs/relaunch_2026-08.md`) — c'est l'étape lente/fragile.
+`COPY requirements.txt` + `pip install -r requirements.txt` sont placés **après**
+cette compilation exprès : ne jamais les remettre avant, sous peine de recompiler
+`mmcv-full` à chaque modification de `requirements.txt`.
 
 ## Architecture
 
 | Chemin | Rôle |
 |---|---|
-| `app/app.py` | Toutes les routes Flask + le handler Socket.IO (`/progress`) + montage du blueprint `/api`. Auth via `flask.session` (`/logout` explicite). |
-| `app/src/utils/db_tools.py` | `Encryptor` (AES, paramétré, OK) + `Database` (toutes les méthodes en requêtes paramétrées `%s` ; les f-strings restantes n'interpolent que des noms de colonnes/conditions figés par le code, jamais une valeur utilisateur). |
-| `app/src/api/__init__.py` | Squelette du blueprint `/api` (`GET /api/health`, erreurs 404/400/500 en JSON). Pas encore d'endpoint métier. |
-| `app/src/utils/pixlabel.py` | Classe `Spectrogram` : STFT/PSD, rendu matplotlib, conversion pixel ↔ (temps, fréquence) via `transData.inverted()`. |
-| `app/src/utils/compute_pipline.py` | Pipeline d'inférence : charge le modèle, génère le spectrogramme (`./tmp/tmp.png`, supprimé après usage), convertit les bbox pixel en (start, end, fmin, fmax, confidence) — fmin/fmax désormais persistés. |
-| `app/templates/*.html` | Jinja, CSS/JS vanilla, pas de build, pas de framework. |
-| `app/static/{css,js}` | `style.css`, `account.css`, `sign_in.css` ; `dropzone.js`, `script_tab.js`. |
-| `db/db_files/init_db.sql` | Schéma : `FILES`, `DETECTIONS`, `PROJECTS`, `SPECIES`, `users` (aucune FK sur `users`). |
-| `db/db_files/migrations/` | Migrations additives/idempotentes appliquées après `init_db.sql`/`load_data.sql` (voir `docs/db_migrations.md` pour les appliquer sur une base déjà peuplée). |
+| `app/app.py` | Routes Flask (pages + upload) + handler Socket.IO (`/progress`, room par client) + montage du blueprint `/api`. Auth via `flask.session`. Upload : tâche de fond (`socketio.start_background_task`), progression par fenêtre ciblée par client. |
+| `app/src/api/` | Blueprint `/api` : `__init__.py` (squelette, erreurs JSON), `records.py` (spectrogramme à la demande, détections, revue, CSV enrichi), `projects.py` (stats, listing/recherche/pagination, vignettes). |
+| `app/src/utils/db_tools.py` | `Encryptor` (AES, paramétré) + `Database`, 100% requêtes paramétrées (les f-strings restantes n'interpolent que des noms de colonnes figés par le code, jamais une valeur utilisateur). |
+| `app/src/utils/pixlabel.py` | Classe `Spectrogram` : STFT/PSD, rendu matplotlib, `axis_bounds()` fige la conversion pixel ↔ (temps, fréquence) pour le client (testé, voir `app/tests/test_pixel_calibration.py`). |
+| `app/src/utils/compute_pipline.py` | Pipeline d'inférence (fenêtrage, `fmin`/`fmax` persistés) + génération de vignettes spectrogramme. |
+| `app/templates/*.html` | Jinja. `base.html` (auth-aware) / `app_base.html` (rail + top bar, écrans connectés) / `record_review.html` (viewer). |
+| `app/static/{css,js}` | `app.css` = design system (tokens, dark mode, composants partagés) ; `viewer.css`/`viewer.js` = viewer ; `dashboard.js`/`files.js`/`app_shell.js` = dashboard/explorateur ; `dropzone.js`/`script_tab.js` = upload. |
+| `app/tests/` | Suite pytest (23 tests : `/api`, calibration pixel↔temps/fréquence, statuts de revue). Voir `docs/testing.md`. |
+| `db/db_files/init_db.sql` | Schéma : `FILES`, `DETECTIONS` (+ `freq_min`/`freq_max`/`review_status`/`reviewed_by`/`reviewed_at`), `PROJECTS`, `SPECIES`, `users` (aucune FK sur `users`). |
+| `db/db_files/migrations/` | Migrations additives/idempotentes (voir `docs/db_migrations.md` pour les appliquer sur une base déjà peuplée). |
 | `docs/redesign/` | Maquette + roadmap du redesign (voir section suivante). |
 
-## Redesign en cours
+## Redesign (terminé)
 
-La demande : une interface moderne où l'utilisateur **visualise le spectrogramme et
-les détections dans le navigateur** et les valide (confirmer/rejeter), au lieu du
-flux actuel (upload → CSV uniquement, spectrogramme jamais envoyé au client).
+La demande initiale : une interface moderne où l'utilisateur **visualise le
+spectrogramme et les détections dans le navigateur** et les valide
+(confirmer/rejeter), au lieu du flux d'origine (upload → CSV uniquement).
 
-- **Plan de référence : [`docs/redesign/ROADMAP.md`](docs/redesign/ROADMAP.md)** —
-  Phase 0 (fondations : sessions réelles, requêtes paramétrées, schéma, API JSON)
-  → Phase 3+4 (endpoint spectrogramme + viewer de revue, cœur de la demande)
-  → Phase 1/2/5 (shell, dashboard, upload temps réel) → Phase 6 (finitions).
-  Coche les cases au fur et à mesure.
-- **Maquette : [`docs/redesign/mockup.html`](docs/redesign/mockup.html)** (ouvrir
-  dans un navigateur) + écrans sources `*.dc.html` / `canvas.json`.
-- La Phase 0 (fondations) est faite (voir plus bas) ; les écrans eux-mêmes
-  (dashboard, explorateur, viewer, upload) restent à implémenter.
+**Toutes les phases du plan sont faites** — voir
+[`docs/redesign/ROADMAP.md`](docs/redesign/ROADMAP.md) pour le détail (cases
+cochées) : sessions réelles + SQL paramétré (Phase 0), design system + dark mode
+(Phase 1), dashboard + explorateur + vignettes (Phase 2), endpoint spectrogramme +
+détections + revue (Phase 3), viewer spectrogramme + overlay de détections +
+lecture audio synchronisée (Phase 4, fonctionnalité phare), upload en tâche de
+fond avec progression par fenêtre et UI sans reload (Phase 5), accessibilité/i18n
+anglais partout/responsive mobile/nettoyage/tests (Phase 6).
+
+Seuls deux points restent **volontairement** non faits, ce sont des décisions
+produit/risque, pas des oublis :
+- **Cloisonnement par utilisateur** (`PROJECTS.id_user` + FK) : personne n'a
+  demandé de séparer les projets par utilisateur, tout le monde voit tout
+  aujourd'hui, comme avant le redesign.
+- **Secrets dans l'historique git** (`db/osadecdb/`, clés TLS privées) : nécessite
+  une réécriture d'historique sur `main` — ne jamais le faire sans confirmation
+  explicite de l'utilisateur à ce moment précis.
+
+- **Maquette (pour référence visuelle)** : [`docs/redesign/mockup.html`](docs/redesign/mockup.html).
 
 ### Sous-agents dédiés au redesign
 
-Utiliser les agents définis dans `.claude/agents/` plutôt que de tout traiter dans
-le fil principal — chacun porte le contexte technique spécifique à son périmètre :
+Agents définis dans `.claude/agents/` (visibles après redémarrage de session) :
+`osadec-backend` (Flask/db_tools/API/pipeline), `osadec-frontend`
+(templates/CSS/JS hors viewer), `osadec-viewer` (fonctionnalité spectrogramme +
+revue, transverse), `osadec-qa` (sécurité/accessibilité/non-régression). Utiles
+pour toute évolution future du projet, pas seulement ce redesign.
 
-- **`osadec-backend`** — routes Flask, `db_tools.py`, migrations SQL, blueprint
-  `/api`, auth/session, pipeline d'inférence. Phases 0, 3 (partie données), 5.
-- **`osadec-frontend`** — templates Jinja, design system CSS, écrans non-viewer
-  (dashboard, explorateur, upload, auth). Phases 1, 2, 5 (UI), 6.
-- **`osadec-viewer`** — fonctionnalité phare : endpoint spectrogramme + overlay de
-  détections + lecture audio synchronisée. Phases 3 (API) et 4 (UI), transverse
-  backend/frontend.
-- **`osadec-qa`** — sécurité, accessibilité, nettoyage, non-régression. À lancer
-  après chaque lot de changements et avant de cocher une phase comme terminée.
+**Travail concurrent** : plusieurs de ces agents ont régulièrement tourné en
+parallèle sur ce projet. Pour que ça marche sans collision, partitionner
+explicitement les fichiers/sections de fichiers touchés par chaque agent (en
+particulier `app/app.py`, édité par plusieurs phases : donner à chacun une zone
+d'insertion disjointe, ex. "insère ta route juste après la fonction X").
+`git stash -u` s'est révélé dangereux en cours de route (a supprimé des fichiers
+non suivis d'agents concurrents avant d'échouer à les nettoyer) — éviter, préférer
+la plumbing git (`git read-tree`/`commit-tree`) pour toute réécriture d'historique
+qui doit laisser l'arbre de travail intact.
 
-## État de la Phase 0 (fondations) — fait au 2026-10-01
-
-Sessions réelles (`flask.session`), requêtes paramétrées dans `db_tools.py`,
-colonnes `freq_min`/`freq_max`/`review_status`/`reviewed_by`/`reviewed_at` sur
-`DETECTIONS`, persistance de `fmin`/`fmax` (clé `"fmax:"` corrigée), exposition de
-`id_detection` (`get_detection`, `update_detection_status`), squelette `/api` :
-**faits, vérifiés en conditions réelles contre la base peuplée** (19 fichiers,
-5211 détections). Détail dans `docs/redesign/ROADMAP.md` (cases cochées) et
-`docs/db_migrations.md`. Seul le cloisonnement par utilisateur
-(`PROJECTS.id_user`) reste volontairement non fait (décision produit à trancher).
-
-## Contraintes connues à respecter (ne pas réintroduire / corriger si on y touche)
+## Contraintes connues à respecter (ne pas réintroduire)
 
 - **Secrets versionnés** : `db/osadecdb/` (datadir MySQL complet) et des clés TLS
-  privées sont dans l'historique git. `app/.env` est gitignored mais fragile
-  (`init.sh` l'a déjà corrompu par le passé). Toujours pas corrigé.
-- **`/upload` et les routes de téléchargement** ne sont pas protégées par session
-  (elles ne dépendaient pas des anciens globals `user`/`state` non plus — pas une
-  régression du redesign, mais à traiter si on veut un vrai cloisonnement).
-- **Spectrogramme** : un seul fichier partagé `./tmp/tmp.png`, écrit puis supprimé
-  à chaque inférence — ne pas réutiliser ce chemin pour l'endpoint à la demande du
-  redesign (fichiers uniques + cache). Toujours vrai, à traiter en Phase 3.
-- **Base déjà peuplée** (19 fichiers, 5211 détections, 2 espèces réellement
-  détectées sur les 7 enregistrées) : toute migration doit être additive et
-  idempotente.
+  privées sont dans l'historique git (`main`). `app/.env` est gitignored mais
+  fragile (`init.sh` l'a déjà corrompu par le passé). Toujours pas corrigé —
+  risque de réécriture d'historique, cf. ci-dessus.
+- **Base déjà peuplée** (19 fichiers d'origine + ceux uploadés depuis, 2 espèces
+  réellement détectées sur les 7 enregistrées) : toute migration doit être
+  additive et idempotente.
+- **`app/bucket`/`app/tmp` sont vides par défaut** dans un environnement de dev
+  frais (gitignorés) : la plupart des enregistrements de démo n'ont pas de `.wav`
+  réel sur disque (spectrogramme/vignette/audio → 404 propre, pas un bug) ; seuls
+  les fichiers réellement uploadés en ont.
+- **Piège CSS `[hidden]`** : si un élément togglé par `.hidden = true/false` en JS
+  a aussi une règle CSS `display: ...` sur sa classe, cette règle l'emporte sur le
+  `[hidden]` natif — toujours ajouter `.ma-classe[hidden] { display: none; }`
+  (rencontré et corrigé deux fois dans ce projet : `viewer.css`, `account.css`).
 
 ## Conventions
 
-- Pas de suite de tests actuellement.
+- Suite de tests : `app/tests/` (pytest), voir `docs/testing.md`.
 - Messages de commit courts, à l'impératif, parfois avec `Fix #<issue>` (voir
   `git log`).
-- Les templates déclarent `lang="fr"` mais le texte est en anglais — l'i18n est
-  traitée en Phase 6 du redesign, ne pas mélanger les langues entre-temps dans un
-  même écran.
+- `lang="en"` partout (tout le texte de l'app est en anglais, pas de FR/EN réel).

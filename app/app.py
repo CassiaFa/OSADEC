@@ -260,9 +260,21 @@ def files_view():
     if not session.get("user"):
         return redirect("/sign_in")
 
-    id_project = _default_project_id(request.args.get('project', type=int))
+    # Unlike the dashboard, the explorer defaults to "All projects" (no
+    # `?project=` -> id_project stays None) rather than picking one for the
+    # user - /api/records (app/src/api/projects.py) handles that case.
+    id_project = request.args.get('project', type=int)
 
-    return render_template('files.html', active_nav='files', default_project_id=id_project)
+    Database.open_connexion()
+    try:
+        has_projects = bool(Database.get_projects())
+    finally:
+        Database.close_connexion()
+
+    return render_template(
+        'files.html', active_nav='files',
+        default_project_id=id_project, has_projects=has_projects,
+    )
 
 
 @socketio.on('connect', namespace='/progress')
@@ -398,12 +410,15 @@ def handle_upload():
     long = request.values.get('long')
 
     try:
-        acquisition_date_dt = datetime.strptime(acquisition_date, '%Y-%m-%dT%H:%M:%S')
+        # Browsers don't all fill the seconds field of a `datetime-local`
+        # input the same way, so accept both "...T11:00" and "...T11:00:00"
+        # (fromisoformat handles any valid ISO 8601 precision).
+        acquisition_date_dt = datetime.fromisoformat(acquisition_date)
     except (TypeError, ValueError):
         os.remove(file_path)
         return jsonify({
             'error': 'bad_request',
-            'message': 'acquisition_date must be an ISO datetime (YYYY-MM-DDTHH:MM:SS).',
+            'message': 'acquisition_date must be an ISO datetime (e.g. YYYY-MM-DDTHH:MM).',
         }), 400
 
     try:

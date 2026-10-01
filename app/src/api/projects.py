@@ -178,101 +178,162 @@ def project_stats(id_project):
     }
 
 
-@api_bp.route("/projects/<int:id_project>/records", methods=["GET"])
-def project_records(id_project):
-    """
-    Filtered/sorted/paginated record listing for the explorer (`/files`).
-
-    Query params (all optional):
-        q: case-insensitive substring match on the record name.
-        species: id_species, keep only records with at least one detection of
-            that species.
-        status: one of 'new', 'pending', 'reviewed' (see `_record_status`).
-        date_from, date_to: 'YYYY-MM-DD', inclusive, filtered on FILES.date.
-        sort: 'name' | 'date' | 'detections' | 'duration' (default 'date').
-        dir: 'asc' | 'desc' (default 'desc').
-        page: 1-based page number (default 1).
-        page_size: rows per page (default 10, max 100).
-    """
-    project = _get_project_or_404(id_project)
-
-    q = (request.args.get("q") or "").strip().lower()
-    species_filter = request.args.get("species", type=int)
-    status_filter = request.args.get("status")
-    date_from = request.args.get("date_from")
-    date_to = request.args.get("date_to")
-    sort = request.args.get("sort", default="date")
-    direction = request.args.get("dir", default="desc")
-    page = max(1, request.args.get("page", default=1, type=int) or 1)
+def _parse_list_args():
+    """Shared query-param parsing/validation for both record-listing routes."""
+    args = {
+        "q": (request.args.get("q") or "").strip().lower(),
+        "species_filter": request.args.get("species", type=int),
+        "status_filter": request.args.get("status"),
+        "date_from": request.args.get("date_from"),
+        "date_to": request.args.get("date_to"),
+        "sort": request.args.get("sort", default="date"),
+        "direction": request.args.get("dir", default="desc"),
+        "page": max(1, request.args.get("page", default=1, type=int) or 1),
+    }
     page_size = request.args.get("page_size", default=10, type=int) or 10
-    page_size = max(1, min(page_size, 100))
+    args["page_size"] = max(1, min(page_size, 100))
 
-    if status_filter not in (None, "new", "pending", "reviewed"):
+    if args["status_filter"] not in (None, "new", "pending", "reviewed"):
         abort(400, description="`status` must be one of 'new', 'pending', 'reviewed'.")
-    if sort not in ("name", "date", "detections", "duration"):
+    if args["sort"] not in ("name", "date", "detections", "duration"):
         abort(400, description="`sort` must be one of 'name', 'date', 'detections', 'duration'.")
+    return args
 
-    Database.open_connexion()
-    try:
-        files = _as_list(Database.get_files(
-            id_project=id_project,
-            time_min=date_from,
-            time_max=date_to,
-        ))
-    finally:
-        Database.close_connexion()
 
+def _build_records(files, project_name_by_id):
+    """
+    Turns FILES rows into the explorer's record shape (species/status resolved
+    from DETECTIONS), unfiltered/unsorted/unpaginated - shared by the
+    single-project and all-projects listing routes below. `species_ids` is
+    kept on each record for filtering by `_filter_sort_paginate` and stripped
+    before the response is returned.
+    """
     id_files = [f["id_file"] for f in files]
     detections_by_file = _detections_by_file(id_files) if id_files else {}
     species_map = _species_name_map()
 
     records = []
     for f in files:
-        if q and q not in f["name"].lower():
-            continue
-
         dets = detections_by_file.get(f["id_file"], [])
         species_ids = sorted({d["id_species"] for d in dets})
-
-        if species_filter is not None and species_filter not in species_ids:
-            continue
-
-        status = _record_status(dets)
-        if status_filter and status != status_filter:
-            continue
-
         pending = sum(1 for d in dets if d["review_status"] == "pending")
         records.append({
             "id": f["id_file"],
             "name": f["name"],
-            "project_name": project["name"],
+            "project_name": project_name_by_id.get(f["id_project"], "—"),
             "date": f["date"].isoformat() if f["date"] else None,
             "duration_seconds": f["duration"],
             "detections": len(dets),
             "pending_detections": pending,
             "species": [species_map.get(i, f"Species {i}") for i in species_ids],
-            "status": status,
+            "species_ids": species_ids,
+            "status": _record_status(dets),
         })
+    return records
+
+
+def _filter_sort_paginate(records, args):
+    filtered = []
+    for r in records:
+        if args["q"] and args["q"] not in r["name"].lower():
+            continue
+        if args["species_filter"] is not None and args["species_filter"] not in r["species_ids"]:
+            continue
+        if args["status_filter"] and r["status"] != args["status_filter"]:
+            continue
+        filtered.append(r)
 
     sort_key = {
         "name": lambda r: r["name"],
         "date": lambda r: r["date"] or "",
         "detections": lambda r: r["detections"],
         "duration": lambda r: r["duration_seconds"] or 0,
-    }[sort]
-    records.sort(key=sort_key, reverse=(direction != "asc"))
+    }[args["sort"]]
+    filtered.sort(key=sort_key, reverse=(args["direction"] != "asc"))
 
-    total = len(records)
+    total = len(filtered)
+    page_size = args["page_size"]
     pages = max(1, (total + page_size - 1) // page_size)
-    page = min(page, pages)
+    page = min(args["page"], pages)
     start = (page - 1) * page_size
-    page_records = records[start:start + page_size]
+    page_records = [{k: v for k, v in r.items() if k != "species_ids"} for r in filtered[start:start + page_size]]
+    return page_records, total, page, pages
+
+
+@api_bp.route("/projects/<int:id_project>/records", methods=["GET"])
+def project_records(id_project):
+    """
+    Filtered/sorted/paginated record listing for the explorer (`/files`),
+    scoped to a single project. See `all_records` below for the "All
+    projects" variant used when the explorer's project switcher is cleared.
+
+    Query params (all optional): see `_parse_list_args`.
+    """
+    project = _get_project_or_404(id_project)
+    args = _parse_list_args()
+
+    Database.open_connexion()
+    try:
+        files = _as_list(Database.get_files(
+            id_project=id_project,
+            time_min=args["date_from"],
+            time_max=args["date_to"],
+        ))
+    finally:
+        Database.close_connexion()
+
+    records = _build_records(files, {id_project: project["name"]})
+    page_records, total, page, pages = _filter_sort_paginate(records, args)
 
     return {
         "project": {"id": project["id_project"], "name": project["name"]},
         "records": page_records,
         "total": total,
         "page": page,
-        "page_size": page_size,
+        "page_size": args["page_size"],
         "pages": pages,
+    }
+
+
+@api_bp.route("/records", methods=["GET"])
+def all_records():
+    """
+    Same as `project_records`, but across every project at once - used by the
+    explorer when its project switcher is set to "All projects" (no
+    `id_project` in the URL). Each record carries its own `project_name`.
+    """
+    args = _parse_list_args()
+
+    Database.open_connexion()
+    try:
+        files = _as_list(Database.get_files(time_min=args["date_from"], time_max=args["date_to"]))
+        projects = _as_list(Database.get_projects())
+    finally:
+        Database.close_connexion()
+
+    project_name_by_id = {p["id_project"]: p["name"] for p in projects}
+    records = _build_records(files, project_name_by_id)
+    page_records, total, page, pages = _filter_sort_paginate(records, args)
+
+    return {
+        "project": None,
+        "records": page_records,
+        "total": total,
+        "page": page,
+        "page_size": args["page_size"],
+        "pages": pages,
+    }
+
+
+@api_bp.route("/species", methods=["GET"])
+def list_species():
+    """All known species, for the explorer's species filter when no single
+    project is selected (a per-project species list is still used — see
+    `project_stats` — when one is)."""
+    species_map = _species_name_map()
+    return {
+        "species": [
+            {"id": id_species, "name": name}
+            for id_species, name in sorted(species_map.items(), key=lambda kv: kv[1])
+        ]
     }

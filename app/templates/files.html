@@ -3,7 +3,7 @@
 {% block title %}OSADEC | Records{% endblock %}
 
 {% block app_content %}
-{% if default_project_id %}
+{% if has_projects %}
 <div class="app-view__header">
   <h1 style="margin:0">Records</h1>
   <span class="badge-count" id="records-total">&hellip;</span>
@@ -70,8 +70,8 @@
 {% endblock %}
 
 {% block script %}
-{% if default_project_id %}
-<script>window.OSADEC_PROJECT_ID = {{ default_project_id }};</script>
+{% if has_projects %}
+<script>window.OSADEC_PROJECT_ID = {{ default_project_id if default_project_id else 'null' }};</script>
 <script src="{{ url_for('static', filename='js/files.js') }}"></script>
 {% endif %}
 {% endblock %}

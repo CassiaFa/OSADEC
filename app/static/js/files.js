@@ -6,8 +6,16 @@
 // reload) in sync with the current filters.
 
 (function () {
+  // `null` (no `?project=` in the URL) means "All projects" - every record,
+  // across every project, via GET /api/records instead of
+  // /api/projects/<id>/records. Both return the exact same shape.
   const idProject = window.OSADEC_PROJECT_ID;
-  if (!idProject) return;
+  const recordsUrl = idProject
+    ? `/api/projects/${idProject}/records`
+    : '/api/records';
+  const speciesUrl = idProject
+    ? `/api/projects/${idProject}/stats`
+    : '/api/species';
 
   const form = document.getElementById('filters');
   const qInput = document.getElementById('filter-q');
@@ -32,10 +40,10 @@
   if (initialParams.get('sort')) sortSelect.value = initialParams.get('sort');
   let currentPage = parseInt(initialParams.get('page'), 10) || 1;
 
-  // Species filter options come from the project's own detected species
-  // (stats endpoint), so the dropdown never lists a species that can't match
-  // anything in this project.
-  fetch(`/api/projects/${idProject}/stats`)
+  // Species filter options: the project's own detected species (so the
+  // dropdown never lists one that can't match anything) when scoped to a
+  // project, or every known species when showing "All projects".
+  fetch(speciesUrl)
     .then((res) => res.json())
     .then((data) => {
       for (const s of data.species) {
@@ -134,7 +142,7 @@
 
     body.innerHTML = '<tr><td colspan="7"><div class="empty-state">Loading records&hellip;</div></td></tr>';
 
-    fetch(`/api/projects/${idProject}/records?${params.toString()}`)
+    fetch(`${recordsUrl}?${params.toString()}`)
       .then((res) => res.json())
       .then((data) => {
         totalBadge.textContent = data.total;

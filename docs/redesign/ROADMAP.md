@@ -85,15 +85,19 @@ Bloque les phases par utilisateur et la revue de détections.
 
 ## Phase 2 — Dashboard & explorateur de records
 
-- [ ] `GET /api/projects/<id>/stats` : nb records, nb détections, heures d'audio,
+- [x] `GET /api/projects/<id>/stats` : nb records, nb détections, heures d'audio,
       espèces, en attente.
-- [ ] Dashboard (`Dashboard.dc.html`) : cartes stats, records récents, détections par
+- [x] Dashboard (`Dashboard.dc.html`) : cartes stats, records récents, détections par
       espèce, carte « modèle de détection ».
-- [ ] Explorateur (`Files.dc.html`) : recherche par nom, filtres espèce / statut /
+- [x] Explorateur (`Files.dc.html`) : recherche par nom, filtres espèce / statut /
       date, tri, **pagination côté serveur** (`get_files` avec `limit`/`offset`).
 - [ ] Vignettes spectrogramme par record : générer un PNG basse résolution à
       l'analyse, stocker dans `bucket/spectrograms/<id>.png`, servir via route
-      statique (`send_from_directory`).
+      statique (`send_from_directory`). **Non fait** : `app/bucket` est vide
+      dans cet environnement (pas de `.wav` réels sur disque pour générer de
+      vraies vignettes) ; un placeholder dégradé CSS (`.record-thumb`) est
+      utilisé à la place dans le dashboard et l'explorateur, voir le rapport de
+      l'agent `osadec-frontend` pour le détail.
 
 ## Phase 3 — Endpoint spectrogramme + données de détection
 
@@ -117,32 +121,54 @@ Bloque les phases par utilisateur et la revue de détections.
 
 Écran `Main.dc.html`.
 
-- [ ] Composant viewer : image spectrogramme en fond (canvas ou `<img>`), overlay
+- [x] Composant viewer : image spectrogramme en fond (canvas ou `<img>`), overlay
       SVG/canvas des boîtes de détection en coordonnées temps/fréquence.
-- [ ] Axes fréquence (Hz) et temps (mm:ss), grille, bande affichée 15–200 Hz (cf.
-      `plt.ylim` actuel).
-- [ ] Lecture audio : `<audio>` sur le `.wav` (ou segment), playhead synchronisé,
-      contrôle de vitesse.
-- [ ] Zoom temporel + plage de fréquence → recharge l'image via l'endpoint ;
-      sélecteur de colormap.
-- [ ] Panneau détections : liste synchronisée avec l'overlay (survol / sélection
+      `templates/record_review.html` + `static/js/viewer.js` : `<img>` chargée via
+      `fetch()` (pour lire les en-têtes `X-Axis-*`) puis affichée comme blob URL,
+      overlay SVG positionné avec exactement la formule documentée dans
+      `Spectrogram.axis_bounds()`. Vérifié pixel-perfect avec un fichier de test
+      synthétique (3 tons à positions/fréquences connues, boîtes superposées
+      correctement, cf. rapport de l'agent `osadec-viewer`).
+- [x] Axes fréquence (Hz) et temps (mm:ss), grille, bande affichée 15–200 Hz (cf.
+      `plt.ylim` actuel). Grille + graduations dessinées en pourcentage/`viewBox`
+      à partir des mêmes bornes `X-Axis-*` (pas de recalcul matplotlib).
+- [x] Lecture audio : `<audio>` sur le `.wav` (ou segment), playhead synchronisé,
+      contrôle de vitesse. Réutilise la route existante `/account/wav/<file>`
+      (supporte déjà les requêtes `Range`, vérifié).
+- [x] Zoom temporel + plage de fréquence → recharge l'image via l'endpoint ;
+      sélecteur de colormap. Zoom/plage de fréquence pleinement fonctionnels
+      (fenêtre plafonnée à 300 s, voir note ci-dessous). Sélecteur de colormap
+      **partiel** : filtre CSS côté client (approximation visuelle uniquement,
+      le PNG reste rendu en `Greys` côté serveur) car changer le vrai cmap
+      matplotlib aurait nécessité de toucher `records.py`/`pixlabel.py`, gelés
+      ce tour-ci — voir rapport.
+- [x] Panneau détections : liste synchronisée avec l'overlay (survol / sélection
       croisée), filtre **seuil de confiance** (client), filtre espèce.
-- [ ] Confirmer / rejeter par détection → `PATCH` ; compteur
+- [x] Confirmer / rejeter par détection → `PATCH` ; compteur
       « X confirmées · Y en attente · Z rejetées » ; bouton « Enregistrer la revue ».
-- [ ] Statut du record calculé (`New` / `In review` / `Reviewed`).
+- [x] Statut du record calculé (`New` / `In review` / `Reviewed`).
 
 ## Phase 5 — Upload & analyse en temps réel
 
 Écran `Upload.dc.html`.
 
-- [ ] Inférence en tâche de fond (`socketio.start_background_task`), la requête
+- [x] Inférence en tâche de fond (`socketio.start_background_task`), la requête
       `POST /upload` répond immédiatement avec un id de job.
-- [ ] Progression **par fenêtre** (`fenêtre k/N`), émise dans une **room par client**
-      (fin du broadcast global sur `/progress`).
+- [x] Progression **par fenêtre** (`fenêtre k/N`), émise dans une **room par client**
+      (fin du broadcast global sur `/progress`). Implémenté via la room privée que
+      Flask-SocketIO assigne automatiquement à chaque sid (le client renvoie son
+      `socket.id` au `POST /upload`) ; cf. `_emit_progress`/`_run_analysis_job`
+      dans `app.py`. Vérifié : un client « témoin » connecté en parallèle ne reçoit
+      aucun événement de la progression d'un autre client.
 - [ ] UI : dropzone + formulaire métadonnées 2 colonnes, panneau d'analyse à étapes
       (upload → spectrogramme → détection → sauvegarde), **sans reload de page** ;
       notification + lien direct vers le viewer quand la revue est prête.
-- [ ] Robustesse : appeler réellement `allowed_file`, définir `MAX_CONTENT_LENGTH`,
+      **Non fait par cet agent** (`osadec-backend`) : seuls les noms d'événements
+      et la logique de room côté client (`dropzone.js`, `account.html`) ont été
+      adaptés a minima pour consommer la nouvelle API ; le panneau à étapes et la
+      notification/lien vers `/records/<id>/review` restent à faire par
+      `osadec-frontend`.
+- [x] Robustesse : appeler réellement `allowed_file`, définir `MAX_CONTENT_LENGTH`,
       gérer les fichiers < 300 s (la fenêtre de queue actuelle demande un offset
       négatif).
 

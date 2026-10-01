@@ -1,0 +1,84 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#1f2933}
+    a{color:#0b6a76;text-decoration:none}
+    a:hover{color:#084e57}
+  </style>
+</helmet>
+
+<div style="width:1440px;height:900px;display:flex;background:#ffffff;overflow:hidden">
+
+  <!-- BRAND PANEL -->
+  <div style="width:560px;flex-shrink:0;background:linear-gradient(158deg,#07233b 0%,#0b4a52 100%);color:#eaf6f8;padding:52px 52px;display:flex;flex-direction:column;position:relative;overflow:hidden">
+    <svg width="560" height="240" viewBox="0 0 560 240" preserveAspectRatio="none" style="position:absolute;left:0;bottom:0;opacity:0.18">
+      <path d="M0 120 C 120 60 200 180 320 120 S 480 60 560 110 L560 240 L0 240Z" fill="#7fd6df"/>
+      <path d="M0 160 C 140 110 220 210 360 160 S 500 120 560 150 L560 240 L0 240Z" fill="#4fb9c4" opacity="0.6"/>
+    </svg>
+
+    <div style="display:flex;align-items:center;gap:11px;position:relative">
+      <div style="width:34px;height:34px;border-radius:9px;background:rgba(255,255,255,0.14);display:flex;align-items:center;justify-content:center">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#eaf6f8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h3l2 6 4-14 3 10 2-4h4"/></svg>
+      </div>
+      <span style="font-weight:600;font-size:16px;letter-spacing:.18em">OSADEC</span>
+    </div>
+
+    <div style="flex-grow:1;display:flex;flex-direction:column;justify-content:center;gap:22px;max-width:410px;position:relative">
+      <h2 style="margin:0;font-size:29px;line-height:1.28;font-weight:600">Detect and review marine mammal calls in passive acoustic recordings.</h2>
+      <p style="margin:0;font-size:14px;line-height:1.65;color:#bcdde1">Upload hydrophone recordings, let the detector surface candidate calls, then confirm them on an interactive spectrogram.</p>
+      <div style="display:flex;flex-direction:column;gap:12px;margin-top:4px">
+        <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:#dbeff1"><span style="width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,0.16);display:flex;align-items:center;justify-content:center"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#eaf6f8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-10"/></svg></span>AI-assisted detection (Faster R-CNN, low-frequency band)</div>
+        <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:#dbeff1"><span style="width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,0.16);display:flex;align-items:center;justify-content:center"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#eaf6f8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-10"/></svg></span>Interactive spectrogram review with playback</div>
+        <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:#dbeff1"><span style="width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,0.16);display:flex;align-items:center;justify-content:center"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#eaf6f8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-10"/></svg></span>Export confirmed detections to CSV</div>
+      </div>
+    </div>
+
+    <div style="font-size:11px;color:#93bbc0;position:relative">Open source &middot; Ocean Sound Assistant for DEtection and Classification</div>
+  </div>
+
+  <!-- FORM PANEL -->
+  <div style="flex-grow:1;display:flex;align-items:center;justify-content:center;padding:40px">
+    <div style="width:360px">
+      <h1 style="margin:0 0 6px;font-size:22px;font-weight:600">Sign in</h1>
+      <p style="margin:0 0 26px;font-size:13px;color:#5b6b7a">Welcome back. Enter your credentials to continue.</p>
+
+      <label style="display:block;margin-bottom:14px">
+        <span style="display:block;font-size:12px;color:#5b6b7a;margin-bottom:6px">Username</span>
+        <span style="height:40px;border:1px solid #dde3e9;border-radius:9px;padding:0 12px;display:flex;align-items:center;font-size:13px;color:#8a97a4">yourname</span>
+      </label>
+      <label style="display:block;margin-bottom:0">
+        <span style="display:block;font-size:12px;color:#5b6b7a;margin-bottom:6px">Password</span>
+        <span style="height:40px;border:1px solid #dde3e9;border-radius:9px;padding:0 12px;display:flex;align-items:center;font-size:16px;letter-spacing:2px;color:#1f2933">&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;<span style="flex-grow:1"></span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8a97a4" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></span>
+      </label>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin:14px 0 22px">
+        <span style="display:flex;align-items:center;gap:7px;font-size:12px;color:#5b6b7a"><span style="width:15px;height:15px;border:1px solid #c8d0d8;border-radius:4px;display:block"></span>Remember me</span>
+        <a style="font-size:12px">Forgot password?</a>
+      </div>
+
+      <div style="height:42px;display:flex;align-items:center;justify-content:center;border-radius:9px;background:#0b6a76;color:#fff;font-size:14px;font-weight:600">Sign in</div>
+
+      <div style="display:flex;align-items:center;gap:12px;margin:22px 0;color:#c8d0d8;font-size:10px;letter-spacing:.1em">
+        <span style="flex-grow:1;height:1px;background:#eef1f4"></span>NEW TO OSADEC<span style="flex-grow:1;height:1px;background:#eef1f4"></span>
+      </div>
+
+      <div style="height:42px;display:flex;align-items:center;justify-content:center;border-radius:9px;border:1px solid #dde3e9;background:#fff;color:#1f2933;font-size:14px;font-weight:500">Create an account</div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {}
+</script>
+</body>
+</html>

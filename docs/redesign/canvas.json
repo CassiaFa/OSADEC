@@ -1,0 +1,14 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 1440, "h": 1000, "title": "Spectrogram & detection review" },
+    { "file": "Dashboard.dc.html", "x": 1560, "y": 0, "w": 1440, "h": 980, "title": "Project overview" },
+    { "file": "Files.dc.html", "x": 3120, "y": 0, "w": 1440, "h": 980, "title": "Records list" },
+    { "file": "Upload.dc.html", "x": 0, "y": 1200, "w": 1440, "h": 1020, "title": "Upload & analyse" },
+    { "file": "SignIn.dc.html", "x": 1560, "y": 1200, "w": 1440, "h": 900, "title": "Sign in" }
+  ],
+  "annotations": [
+    { "id": "headline", "x": 0, "y": -104, "w": 940, "text": "OSADEC redesign proposal — modernised shell, in-app spectrogram + detection review (the headline change), and a live upload/analysis flow. Data shown is illustrative sample content." },
+    { "id": "system-note", "x": 1560, "y": -80, "w": 900, "text": "Shared across every screen: 64px icon rail + top bar with project switcher. IBM Plex Sans / Mono, ocean-teal accent, coral for detections. Fully responsive (desktop shown)." }
+  ],
+  "launch": { "view": "focused", "file": "Main.dc.html" }
+}

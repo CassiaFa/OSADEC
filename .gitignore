@@ -23,3 +23,15 @@ visualize_data.py
 detection_model.py
 load_coco.py
 docker-compose_local.yml
+
+# `test*` above (legacy pattern, predates the redesign) would otherwise also
+# hide the real pytest suite and its docs - carve both back out.
+!app/tests/
+!app/tests/**
+!docs/testing.md
+
+# Runtime cache (Phase 3/2 of the redesign): on-demand spectrogram PNGs/axis
+# JSON and pre-generated thumbnail PNGs, regenerated as needed. `*.png` above
+# already covers the images; the JSON sidecars need their own rule.
+app/tmp/
+app/bucket/spectrograms/

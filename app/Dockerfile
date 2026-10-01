@@ -17,11 +17,15 @@ RUN pip install "numpy<2" && \
     pip install torch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2 \
         --index-url https://download.pytorch.org/whl/cpu
 
-COPY requirements.txt requirements.txt
-
 # Compile mmcv-full against the already-installed torch, without build isolation
-# so it can see torch/numpy/setuptools from this environment.
+# so it can see torch/numpy/setuptools from this environment. Deliberately does
+# NOT depend on requirements.txt (even though mmcv-full is also pinned there):
+# editing requirements.txt for an unrelated dependency must never bust this
+# layer's cache and force recompiling mmcv-full from source again (see
+# docs/relaunch_2026-08.md - this build step is the one that's actually slow).
 RUN pip install --no-build-isolation "mmcv-full==1.7.1"
+
+COPY requirements.txt requirements.txt
 
 RUN pip install -r requirements.txt
 
@@ -32,6 +36,8 @@ COPY src src
 COPY static static
 
 COPY templates templates
+
+COPY tests tests
 
 COPY .env .env
 

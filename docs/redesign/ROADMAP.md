@@ -91,13 +91,22 @@ Bloque les phases par utilisateur et la revue de détections.
       espèce, carte « modèle de détection ».
 - [x] Explorateur (`Files.dc.html`) : recherche par nom, filtres espèce / statut /
       date, tri, **pagination côté serveur** (`get_files` avec `limit`/`offset`).
-- [ ] Vignettes spectrogramme par record : générer un PNG basse résolution à
-      l'analyse, stocker dans `bucket/spectrograms/<id>.png`, servir via route
-      statique (`send_from_directory`). **Non fait** : `app/bucket` est vide
-      dans cet environnement (pas de `.wav` réels sur disque pour générer de
-      vraies vignettes) ; un placeholder dégradé CSS (`.record-thumb`) est
-      utilisé à la place dans le dashboard et l'explorateur, voir le rapport de
-      l'agent `osadec-frontend` pour le détail.
+- [x] Vignettes spectrogramme par record : PNG basse résolution (320×90, 60
+      premières secondes, bande 15-200Hz) stocké dans
+      `bucket/spectrograms/<id_file>.png`, servi par
+      `GET /api/records/<id>/thumbnail` (`app/src/api/projects.py`), généré
+      paresseusement à la première requête si absent (+ pré-chauffage
+      optionnel via `pipeline(..., id_file=...)` dans `compute_pipline.py`) et
+      mis en cache sur disque. Chaque enregistrement renvoyé par
+      `/api/projects/<id>/records` et `/api/records` porte désormais
+      `has_thumbnail` pour que le client bascule `<img>`/placeholder CSS sans
+      deviner. **Portée limitée à l'environnement actuel** : sur les 20
+      fichiers en base, un seul (`id_file=32`, `test_20150318_110000.wav`) a un
+      `.wav` réellement présent sur disque - c'est le seul à avoir une vraie
+      vignette (vérifié) ; les 19 autres renvoient 404 proprement et le reste
+      du dataset de démo garde donc le placeholder dégradé CSS
+      (`.record-thumb--empty`) - limite de l'environnement, pas un bug. Script
+      de backfill ponctuel : `app/src/utils/backfill_thumbnails.py`.
 
 ## Phase 3 — Endpoint spectrogramme + données de détection
 
@@ -160,28 +169,102 @@ Bloque les phases par utilisateur et la revue de détections.
       `socket.id` au `POST /upload`) ; cf. `_emit_progress`/`_run_analysis_job`
       dans `app.py`. Vérifié : un client « témoin » connecté en parallèle ne reçoit
       aucun événement de la progression d'un autre client.
-- [ ] UI : dropzone + formulaire métadonnées 2 colonnes, panneau d'analyse à étapes
-      (upload → spectrogramme → détection → sauvegarde), **sans reload de page** ;
+- [x] UI : dropzone + formulaire métadonnées 2 colonnes, panneau d'analyse à étapes
+      (upload → spectrogramme/détection → terminé), **sans reload de page** ;
       notification + lien direct vers le viewer quand la revue est prête.
-      **Non fait par cet agent** (`osadec-backend`) : seuls les noms d'événements
-      et la logique de room côté client (`dropzone.js`, `account.html`) ont été
-      adaptés a minima pour consommer la nouvelle API ; le panneau à étapes et la
-      notification/lien vers `/records/<id>/review` restent à faire par
-      `osadec-frontend`.
+      `templates/account.html` + `static/js/dropzone.js` (+ styles dans
+      `static/css/account.css`) : formulaire métadonnées en grille 2 colonnes
+      (projet en pleine largeur, puis date/profondeur, latitude/longitude),
+      panneau à 3 étapes (`Uploaded` / `Spectrogram & detection` / `Done`,
+      dérivées des événements `progress` existants — pas d'étape serveur
+      distincte pour le spectrogramme seul, donc fusionnée avec la détection
+      comme dans `Upload.dc.html`), plus de `window.location.href =
+      window.location.href` sur `status:'complete'` : à la place un encart de
+      succès avec un lien `/records/<id_file>/review` (URL construite côté
+      client depuis un template Jinja `url_for`, jamais codée en dur) et un
+      bouton « Upload another file ». Sur `status:'error'` (ou un rejet HTTP
+      4xx synchrone de `POST /upload`), le message serveur est affiché dans un
+      encart `role="alert"` avec un bouton qui réinitialise le panneau (sans
+      reload) en conservant les métadonnées déjà saisies. Vérifié de bout en
+      bout avec Playwright contre la stack Docker (upload réel d'un `.wav`
+      synthétique signé + revue de l'erreur avec un fichier invalide), voir
+      rapport de l'agent `osadec-frontend`.
 - [x] Robustesse : appeler réellement `allowed_file`, définir `MAX_CONTENT_LENGTH`,
       gérer les fichiers < 300 s (la fenêtre de queue actuelle demande un offset
       négatif).
 
 ## Phase 6 — Finitions
 
-- [ ] Accessibilité : `role="tab"`/`tabpanel`, gestion du focus, contrastes.
-- [ ] i18n FR / EN (les templates déclarent `lang="fr"` mais tout le texte est en
-      anglais).
-- [ ] Responsive mobile complet (aujourd'hui : zéro `@media`).
-- [ ] Nettoyage : routes mortes (`/form`, `/reset-password`), JS commenté
-      (`script_tab.js`, `dropzone.js`), `logo_white.png` inutilisé, double binding
-      des handlers d'upload.
-- [ ] Tests : routes `/api`, conversion de coordonnées, statuts de revue.
+- [x] Accessibilité : `account.html` — tabs réécrits selon le pattern WAI-ARIA
+      (`static/js/script_tab.js`) : roving `tabindex` (seul l'onglet actif est
+      dans l'ordre de tabulation), navigation clavier Flèche gauche/droite/
+      Home/End, `aria-controls`/`id`/`aria-labelledby` reliant chaque
+      `tab`/`tabpanel` (au lieu de l'`aria-expanded` précédent, incorrect pour
+      ce pattern). Focus géré sur le panneau d'upload : premier champ (ou la
+      dropzone) invalide reçoit le focus au submit, l'encart de succès/erreur
+      reçoit le focus à l'affichage (`tabindex="-1"` + `.focus()`) pour que les
+      utilisateurs clavier/lecteur d'écran soient notifiés de la fin de
+      l'analyse sans dépendre de la seule perception visuelle. Nouvelles
+      classes partagées `.notice-success`/`.notice-danger` dans `app.css`
+      (mêmes tokens que `.notice-warning` existant) : contraste texte/fond
+      vérifié visuellement (texte foncé sur fond pastel, cohérent avec le
+      reste du design system). Non couvert par cet agent : le viewer
+      (`record_review.html`/`viewer.js`, périmètre `osadec-viewer`) et le
+      formulaire d'upload lui-même pour les attributs ARIA avancés au-delà de
+      ce qui existait déjà (labels/required corrects, non retouchés).
+- [x] i18n : `base.html` passé en `lang="en"` (hérité par toutes les pages via
+      `{% extends %}`, y compris `app_base.html` et `record_review.html` — un
+      seul point de correction) ; vérifié qu'aucun texte réellement français ne
+      traîne dans `templates/`/`static/js/` (`grep` sur les accents
+      français : aucune occurrence hors `charset`/attributs HTML). Traduction
+      FR réelle toujours hors scope (décision produit déjà actée en Phase 1).
+- [x] Responsive mobile complet (volet frontend) : vérifié à 390×844 (taille
+      iPhone 12) avec Playwright + Chromium sur `index`, `sign_in`, `sign_up`,
+      `forgot-password`, `account` (onglets Analyse/Explore, panneau d'upload
+      à 3 états), `dashboard`, `files` — plus aucun `scrollWidth >
+      clientWidth`. Deux bugs réels corrigés (pas seulement esthétiques) :
+      (1) `.app-topbar` (rail + marque + sélecteur de projet + compte) ne
+      tenait plus sur une ligne à 390 px → nouveau palier `@media (max-width:
+      480px)` dans `app.css` qui masque la marque texte/le séparateur et
+      réduit le sélecteur de projet ; (2) un nom d'utilisateur long sans
+      espace (ex. `qa_responsive_1790882157`) forçait la largeur de
+      `.user-table` au-delà du viewport (mot insécable) → `overflow-wrap:
+      anywhere` ajouté sur `.user-table th/td` dans `account.css`. Le viewer
+      (`record_review.html`) a été vérifié visuellement à 390 px sans le
+      modifier (périmètre `osadec-viewer`) : pas de débordement horizontal
+      constaté, mais `Could not load detections`/spectrogramme bloqué sur
+      « Loading » observés pendant les tests (semble lié à l'état de travail
+      en cours côté `osadec-viewer`/`records.py`, pas un problème CSS — à
+      confirmer par cet agent).
+- [x] Nettoyage de routes mortes (backend) : `/form` (`handle_form`) supprimée
+      d'`app.py` — vestige confirmé inutilisé (`grep` sur templates/static : aucun
+      formulaire ni JS ne postait dessus). `/reset-password` confirmé toujours
+      absent (déjà nettoyé en Phase 1) et toujours non référencé nulle part.
+      Volet frontend (fait par cet agent) : bloc entier de JS commenté retiré
+      de `static/js/script_tab.js` (ancien duplicata du upload handling,
+      jamais exécuté) ; `static/images/logo_white.png` supprimé (`grep`
+      confirmé : aucune référence dans templates/CSS/JS/py) ; double binding
+      des handlers d'upload corrigé — `account.html` avait à la fois
+      `onsubmit="handleSubmit(event)"`/`onchange="handleFileSelect(this)"`
+      inline **et** les mêmes handlers rebranchés par `dropzone.js`, donc
+      chaque soumission déclenchait deux `POST /upload` (vérifié dans les logs
+      serveur avant correction) ; les attributs inline ont été retirés,
+      `dropzone.js` est la seule source de binding désormais. Bonus trouvé en
+      testant : `uploadFile()` faisait aussi `formData.append('file', ...)`
+      en plus du fichier déjà porté par `new FormData(form)`, envoyant deux
+      fois les mêmes octets par requête — supprimé.
+- [x] Tests : routes `/api`, conversion de coordonnées, statuts de revue —
+      `app/tests/` (pytest, ajouté à `app/requirements.txt`), voir
+      `docs/testing.md` pour l'exécution (doit tourner dans le conteneur
+      `osadec`, `Database.__HOST` ne résout que sur le réseau docker-compose).
+      23 tests, tous verts contre une vraie instance Flask + la base peuplée
+      (`/api/health`, `/api/records/<id>/detections` + `.csv`,
+      `/api/records/<id>/spectrogram` (200 + en-têtes `X-Axis-*`, 400, 404),
+      `PATCH /api/detections/<id>` (401/400/404 + cycle complet
+      pending→confirmed→rejected→pending avec `reviewed_by`/`reviewed_at`),
+      `/api/records`, `/api/projects`, `/api/projects/<id>/stats`,
+      `/api/projects/<id>/records`, `/api/species`, et la calibration pixel
+      <-> (temps, fréquence) via `src/utils/verify_pixel_calibration.py`).
 - [ ] Secrets dans le dépôt : `db/osadecdb/` et clés TLS privées versionnées
       (rappel de `relaunch_2026-08.md`) — à sortir de l'historique.
 

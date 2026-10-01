@@ -343,6 +343,7 @@ def _run_analysis_job(job_id, sid, file_path, file_name, id_file, acquisition_da
         result = pipeline(
             file_path, acquisition_date, duration, fs,
             progress_callback=window_progress, species_map=species_map,
+            id_file=id_file,
         )
 
         progress(85, 'Pipeline finished, writing detections ...')
@@ -412,13 +413,19 @@ def handle_upload():
     try:
         # Browsers don't all fill the seconds field of a `datetime-local`
         # input the same way, so accept both "...T11:00" and "...T11:00:00"
-        # (fromisoformat handles any valid ISO 8601 precision).
+        # (fromisoformat handles any valid ISO 8601 precision). Reject a
+        # timezone offset explicitly: the rest of the app (FILES.date, the
+        # pixel<->time calibration, detection timestamps) assumes a naive
+        # local datetime throughout, so silently accepting "+02:00"/"Z" would
+        # shift every detection time by the offset without any error.
         acquisition_date_dt = datetime.fromisoformat(acquisition_date)
+        if acquisition_date_dt.tzinfo is not None:
+            raise ValueError("acquisition_date must not include a UTC offset")
     except (TypeError, ValueError):
         os.remove(file_path)
         return jsonify({
             'error': 'bad_request',
-            'message': 'acquisition_date must be an ISO datetime (e.g. YYYY-MM-DDTHH:MM).',
+            'message': 'acquisition_date must be a local ISO datetime with no timezone (e.g. YYYY-MM-DDTHH:MM).',
         }), 400
 
     try:
@@ -445,7 +452,7 @@ def handle_upload():
             id_project = Database.get_projects(name=project_name)["id_project"]
             print(f"Project {project_name} have id {id_project}")
 
-            Database.add_file(file_name, acquisition_date, duration, fs, app.config['UPLOAD_PATH'], id_project)
+            Database.add_file(file_name, acquisition_date_dt, duration, fs, app.config['UPLOAD_PATH'], id_project)
 
             id_file = Database.get_files(name=file_name)["id_file"]
 
@@ -501,12 +508,6 @@ def record_review(id_file):
 
     return render_template("record_review.html", id_file=id_file, file=file_row)
 
-
-@app.route('/form', methods=['POST'])
-def handle_form():
-    title = request.form.get('title')
-    description = request.form.get('description')
-    return 'file uploaded and form submit<br>title: %s<br> description: %s' % (title, description)
 
 if __name__ == "__main__":
     socketio.run(app, debug=True, host='0.0.0.0', port=5000,

@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+
+{% block title %}OSADEC | Review {{ file.name }}{% endblock %}
+
+{% block links %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/viewer.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="viewer-page"
+     id="viewer-page"
+     data-id-file="{{ id_file }}"
+     data-duration="{{ file.duration }}"
+     data-fs="{{ file.fs }}"
+     data-file-name="{{ file.name }}"
+     data-wav-url="{{ url_for('download_file', file=file.name, type='wav') }}"
+     data-csv-url="{{ url_for('api.record_detections_csv', id_file=id_file) }}"
+     data-detections-url="{{ url_for('api.record_detections', id_file=id_file) }}"
+     data-spectrogram-url="{{ url_for('api.record_spectrogram', id_file=id_file) }}">
+
+  <div class="viewer-breadcrumb">
+    <span>Records</span><span>/</span><span class="viewer-breadcrumb__current">{{ file.name }}</span>
+  </div>
+
+  <div class="viewer-header">
+    <div class="viewer-header__title">
+      <h1>{{ file.name }}</h1>
+      <span id="record-status-pill" class="pill pill-neutral">Loading&hellip;</span>
+    </div>
+    <div class="viewer-header__meta">
+      <span>{{ "%d:%02d"|format(file.duration // 60, file.duration % 60) }} duration</span>
+      <span>&middot;</span>
+      <span>{{ file.fs }} Hz</span>
+      <span>&middot;</span>
+      <span id="detection-count-meta">&hellip; detections</span>
+    </div>
+    <div class="viewer-header__actions">
+      <a class="btn btn-secondary" href="{{ url_for('download_file', file=file.name, type='wav') }}">Download .wav</a>
+      <a class="btn btn-secondary" id="export-csv-link" href="{{ url_for('api.record_detections_csv', id_file=id_file) }}">Export .csv</a>
+    </div>
+  </div>
+
+  <div class="viewer-grid">
+
+    <!-- VIEWER COLUMN -->
+    <div class="viewer-main">
+
+      <div class="spectrogram-card">
+        <div class="spectrogram-freq-axis" id="freq-axis" aria-hidden="true"></div>
+        <div class="spectrogram-body">
+          <div class="spectrogram-canvas-wrap" id="spectrogram-wrap">
+            <img id="spectrogram-img" alt="Spectrogram of {{ file.name }}">
+            <svg id="detection-overlay" class="detection-overlay" preserveAspectRatio="none"></svg>
+            <div id="playhead" class="playhead" hidden>
+              <div class="playhead__time" id="playhead-time">0:00</div>
+            </div>
+            <div id="spectrogram-status" class="spectrogram-status" hidden></div>
+          </div>
+          <div class="spectrogram-time-axis" id="time-axis" aria-hidden="true"></div>
+          <div class="spectrogram-axis-caption">TIME &middot; FREQUENCY IN Hz</div>
+        </div>
+      </div>
+
+      <div class="transport-bar">
+        <audio id="audio-player" preload="metadata"></audio>
+        <button type="button" id="btn-skip-back" class="transport-btn" title="Back 5s" aria-label="Back 5 seconds">&laquo;</button>
+        <button type="button" id="btn-play" class="transport-btn transport-btn--primary" title="Play/pause" aria-label="Play or pause">&#9654;</button>
+        <button type="button" id="btn-skip-fwd" class="transport-btn" title="Forward 5s" aria-label="Forward 5 seconds">&raquo;</button>
+        <span id="transport-time" class="transport-time">0:00 / 0:00</span>
+        <div class="transport-spacer"></div>
+        <label class="transport-field">
+          <span class="sr-only">Playback speed</span>
+          <select id="speed-select">
+            <option value="0.25">0.25&times;</option>
+            <option value="0.5">0.5&times;</option>
+            <option value="1" selected>1.0&times;</option>
+            <option value="1.5">1.5&times;</option>
+            <option value="2">2.0&times;</option>
+          </select>
+        </label>
+        <label class="transport-field">
+          <span class="sr-only">Colormap</span>
+          <select id="colormap-select">
+            <option value="ocean" selected>Ocean</option>
+            <option value="grayscale">Grayscale</option>
+            <option value="inferno">Inferno</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="zoom-bar">
+        <div class="zoom-bar__group">
+          <span class="zoom-bar__label">Time window</span>
+          <button type="button" id="btn-zoom-out" class="btn btn-ghost btn-sm" title="Zoom out">&minus;</button>
+          <span id="time-window-label" class="zoom-bar__value">0:00 &ndash; 0:00</span>
+          <button type="button" id="btn-zoom-in" class="btn btn-ghost btn-sm" title="Zoom in">+</button>
+          <button type="button" id="btn-zoom-reset" class="btn btn-ghost btn-sm">Reset</button>
+        </div>
+        <div class="zoom-bar__group">
+          <span class="zoom-bar__label">Frequency (Hz)</span>
+          <input type="number" id="fmin-input" class="zoom-bar__input" value="15" min="0" step="1">
+          <span>&ndash;</span>
+          <input type="number" id="fmax-input" class="zoom-bar__input" value="200" min="1" step="1">
+          <button type="button" id="btn-apply-freq" class="btn btn-ghost btn-sm">Apply</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- DETECTION PANEL -->
+    <div class="detections-panel">
+      <div class="detections-panel__header">
+        <span class="detections-panel__title">Detections</span>
+        <span id="detections-count-badge" class="detections-panel__badge">0</span>
+        <div class="detections-panel__spacer"></div>
+        <a href="{{ url_for('api.record_detections_csv', id_file=id_file) }}">Export</a>
+      </div>
+
+      <div class="detections-panel__filters">
+        <div class="filter-confidence">
+          <div class="filter-confidence__row">
+            <span>Min confidence</span>
+            <span id="confidence-value" class="value">0.00</span>
+          </div>
+          <input type="range" id="confidence-filter" min="0" max="1" step="0.01" value="0">
+        </div>
+        <label class="filter-species">
+          <span class="sr-only">Species</span>
+          <select id="species-filter">
+            <option value="">All species</option>
+          </select>
+        </label>
+      </div>
+
+      <ul id="detections-list" class="detections-list" aria-label="Detections"></ul>
+
+      <div class="detections-panel__footer">
+        <span id="review-counts" class="value">0 conf &middot; 0 pend &middot; 0 rej</span>
+        <div class="detections-panel__spacer"></div>
+        <button type="button" id="btn-save-review" class="btn btn-primary btn-sm">Save review</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block script %}
+    <script src="{{ url_for('static', filename='js/viewer.js') }}" defer></script>
+{% endblock %}

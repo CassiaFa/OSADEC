@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from dotenv import load_dotenv
 import mysql.connector as mysqlpy
 
@@ -100,8 +101,8 @@ class Database():
             dict: The user dictionary if the username and password match, False otherwise.
         """
 
-        querry = f"SELECT * FROM users WHERE username='{username}';"
-        cls.__cursor.execute(querry)
+        querry = "SELECT * FROM users WHERE username=%s;"
+        cls.__cursor.execute(querry, (username,))
 
         user = cls.__cursor.fetchone()
         if user:
@@ -128,35 +129,33 @@ class Database():
         """
 
 
+        conditions = []
+        params = []
+
         if id_file:
-            if time_min and time_max:
-                querry = f"SELECT name, date, duration, path, fs FROM FILES WHERE id_file={id_file} AND date>='{time_min}' AND date<='{time_max}';"
-            elif time_min:
-                querry = f"SELECT name, date, duration, path, fs FROM FILES WHERE id_file={id_file} AND date>='{time_min}';"
-            elif time_max:
-                querry = f"SELECT name, date, duration, path, fs FROM FILES WHERE id_file={id_file} AND date<='{time_max}';"
-            else:
-                querry = f"SELECT name, date, duration, path, fs FROM FILES WHERE id_file={id_file};"
+            columns = "name, date, duration, path, fs"
+            conditions.append("id_file=%s")
+            params.append(id_file)
         elif name:
-            if time_min and time_max:
-                querry = f"SELECT id_file, date, duration, path, fs FROM FILES WHERE name='{name}' AND date>='{time_min}' AND date<='{time_max}';"
-            elif time_min:
-                querry = f"SELECT id_file, date, duration, path, fs FROM FILES WHERE name='{name}' AND date>='{time_min}';"
-            elif time_max:
-                querry = f"SELECT id_file, date, duration, path, fs FROM FILES WHERE name='{name}' AND date<='{time_max}';"
-            else:
-                querry = f"SELECT id_file, date, duration, path, fs FROM FILES WHERE name='{name}';"
+            columns = "id_file, date, duration, path, fs"
+            conditions.append("name=%s")
+            params.append(name)
         else:
-            if time_min and time_max:
-                querry = f"SELECT id_file, name, date, duration, path, fs FROM FILES WHERE date>='{time_min}' AND date<='{time_max}';"
-            elif time_min:
-                querry = f"SELECT id_file, name, date, duration, path, fs FROM FILES WHERE date>='{time_min}';"
-            elif time_max:
-                querry = f"SELECT id_file, name, date, duration, path, fs FROM FILES WHERE date<='{time_max}';"
-            else:
-                querry = "SELECT id_file, name, date, duration, path, fs FROM FILES;"
-        
-        cls.__cursor.execute(querry)
+            columns = "id_file, name, date, duration, path, fs"
+
+        if time_min:
+            conditions.append("date>=%s")
+            params.append(time_min)
+        if time_max:
+            conditions.append("date<=%s")
+            params.append(time_max)
+
+        querry = f"SELECT {columns} FROM FILES"
+        if conditions:
+            querry += " WHERE " + " AND ".join(conditions)
+        querry += ";"
+
+        cls.__cursor.execute(querry, tuple(params))
 
         result = cls.__cursor.fetchall()
         
@@ -178,22 +177,32 @@ class Database():
             time_max (str, optional): An optional string representing the maximum time to filter the detections by.
 
         Returns:
-            list[dict]: A list of dict containing the start and stop times of each detection, and the id of the detected species.
+            list[dict]: A list of dict containing the id, start and stop times of each detection, and the id of the detected species.
         """
 
+        conditions = []
+        params = []
+
         if id_file:
-            if time_min and time_max:
-                querry = f"SELECT start, stop, id_species, confidence FROM DETECTIONS WHERE id_file={id_file} AND START>='{time_min}' AND STOP<='{time_max}';"
-            elif time_min:
-                querry = f"SELECT start, stop, id_species, confidence FROM DETECTIONS WHERE id_file={id_file} AND START>='{time_min}';"
-            elif time_max:
-                querry = f"SELECT start, stop, id_species, confidence FROM DETECTIONS WHERE id_file={id_file} AND STOP<='{time_max}';"
-            else:
-                querry = f"SELECT start, stop, id_species, confidence FROM DETECTIONS WHERE id_file={id_file};"
+            columns = "id_detection, start, stop, id_species, confidence"
+            conditions.append("id_file=%s")
+            params.append(id_file)
         else:
-            querry = "SELECT start, stop, id_file, id_species, confidence FROM DETECTIONS;"
-        
-        cls.__cursor.execute(querry)
+            columns = "id_detection, start, stop, id_file, id_species, confidence"
+
+        if time_min:
+            conditions.append("start>=%s")
+            params.append(time_min)
+        if time_max:
+            conditions.append("stop<=%s")
+            params.append(time_max)
+
+        querry = f"SELECT {columns} FROM DETECTIONS"
+        if conditions:
+            querry += " WHERE " + " AND ".join(conditions)
+        querry += ";"
+
+        cls.__cursor.execute(querry, tuple(params))
 
         result = cls.__cursor.fetchall()
 
@@ -216,17 +225,21 @@ class Database():
         """
 
         if name:
-            querry = f"SELECT * FROM PROJECTS WHERE name='{name}';"
+            condition, param = "name=%s", name
         elif depth:
-            querry = f"SELECT * FROM PROJECTS WHERE depth={depth};"
+            condition, param = "depth=%s", depth
         elif lat:
-            querry = f"SELECT * FROM PROJECTS WHERE latitude={lat};"
+            condition, param = "latitude=%s", lat
         elif long:
-            querry = f"SELECT * FROM PROJECTS WHERE longitude={long};"
+            condition, param = "longitude=%s", long
         else:
-            querry = "SELECT * FROM PROJECTS;"
-        
-        cls.__cursor.execute(querry)
+            condition, param = None, None
+
+        if condition:
+            querry = f"SELECT * FROM PROJECTS WHERE {condition};"
+            cls.__cursor.execute(querry, (param,))
+        else:
+            cls.__cursor.execute("SELECT * FROM PROJECTS;")
 
         result = cls.__cursor.fetchall()
 
@@ -284,15 +297,19 @@ class Database():
     def get_categories(cls, id_species=None, english_name=None, latin_name=None):
         
         if id_species:
-            querry = f"SELECT id_species, english_name FROM SPECIES WHERE id_species={id_species};"
+            condition, param = "id_species=%s", id_species
         elif english_name:
-            querry = f"SELECT id_species, english_name FROM SPECIES WHERE english_name='{english_name}';"
+            condition, param = "english_name=%s", english_name
         elif latin_name:
-            querry = f"SELECT id_species, english_name FROM SPECIES WHERE latin_name='{latin_name}';"
+            condition, param = "latin_name=%s", latin_name
         else:
-            querry = "SELECT id_species, english_name FROM SPECIES"
+            condition, param = None, None
 
-        cls.__cursor.execute(querry)
+        if condition:
+            querry = f"SELECT id_species, english_name FROM SPECIES WHERE {condition};"
+            cls.__cursor.execute(querry, (param,))
+        else:
+            cls.__cursor.execute("SELECT id_species, english_name FROM SPECIES;")
 
         result = cls.__cursor.fetchall()
 
@@ -327,7 +344,7 @@ class Database():
 
 
     @classmethod
-    def add_detection(cls, start, stop, confidence, id_species, id_file):
+    def add_detection(cls, start, stop, confidence, id_species, id_file, freq_min=None, freq_max=None):
         """
         Adds a new detection to the database.
 
@@ -337,44 +354,85 @@ class Database():
             confidence (float): Confidence level of the detection.
             id_species (int): ID of the species detected.
             id_file (int): ID of the file containing the detection.
+            freq_min (float, optional): Minimum frequency (Hz) of the detection box.
+            freq_max (float, optional): Maximum frequency (Hz) of the detection box.
 
         Returns:
             None
         """
 
-        querry = "INSERT INTO DETECTIONS (start, stop, confidence ,id_file, id_species) VALUES (%s, %s, %s, %s, %s);"
-        param = (start, stop, float(confidence), id_file, id_species)
-        cls.__cursor.execute(querry, param)        
+        querry = "INSERT INTO DETECTIONS (start, stop, confidence, id_file, id_species, freq_min, freq_max) VALUES (%s, %s, %s, %s, %s, %s, %s);"
+        param = (start, stop, float(confidence), id_file, id_species, freq_min, freq_max)
+        cls.__cursor.execute(querry, param)
         cls.__bdd.commit()
-    
+
+    @classmethod
+    def get_detection(cls, id_detection):
+        """
+        Retrieves a single detection by its id, including review status.
+
+        Args:
+            id_detection (int): The id of the detection to retrieve.
+
+        Returns:
+            dict | None: The detection row, or None if it does not exist.
+        """
+
+        querry = ("SELECT id_detection, start, stop, id_file, id_species, confidence, "
+                  "freq_min, freq_max, review_status, reviewed_by, reviewed_at "
+                  "FROM DETECTIONS WHERE id_detection=%s;")
+        cls.__cursor.execute(querry, (id_detection,))
+
+        return cls.__cursor.fetchone()
+
+    @classmethod
+    def update_detection_status(cls, id_detection, review_status, reviewed_by=None):
+        """
+        Updates the review status of a detection.
+
+        Args:
+            id_detection (int): The id of the detection to update.
+            review_status (str): One of 'pending', 'confirmed', 'rejected'.
+            reviewed_by (int, optional): The id of the user performing the review.
+
+        Returns:
+            None
+        """
+
+        reviewed_at = datetime.now() if review_status in ("confirmed", "rejected") else None
+
+        querry = ("UPDATE DETECTIONS SET review_status=%s, reviewed_by=%s, reviewed_at=%s "
+                  "WHERE id_detection=%s;")
+        param = (review_status, reviewed_by, reviewed_at, id_detection)
+        cls.__cursor.execute(querry, param)
+        cls.__bdd.commit()
+
     @classmethod
     def get_all_info(cls, file_name):
         """
         Retrieves all information about a file, the project and the detection corresponding to it.
-        
+
         Args:
             file_name (str): The name of the file.
 
         Returns:
             dict: A dictionary containing the information about the file, the project and the detection
         """
-        # querry = "SELECT @@GLOBAL.sql_mode;"
-        # cls.__cursor.execute(querry)
-        # test = cls.__cursor.fetchall
         if not cls.__join:
             cls.__cursor.execute("SET GLOBAL sql_mode=(SELECT REPLACE(@@sql_mode,'ONLY_FULL_GROUP_BY',''));")
             cls.__join = True
 
-        querry = f" SELECT PROJECTS.name AS p_name, PROJECTS.depth, PROJECTS.latitude, PROJECTS.longitude, FILES.name, FILES.date, FILES.fs, FILES.duration, SPECIES.english_name AS s_name, COUNT(*) AS nb_detections \
-                    FROM FILES \
-                    INNER JOIN DETECTIONS ON FILES.id_file = DETECTIONS.id_file \
-                    INNER JOIN PROJECTS ON FILES.id_project = PROJECTS.id_project \
-                    INNER JOIN SPECIES ON DETECTIONS.id_species = SPECIES.id_species \
-                    WHERE FILES.name='{file_name}'\
-                    GROUP BY DETECTIONS.id_species;"
-        cls.__cursor.execute(querry)
+        querry = ("SELECT PROJECTS.name AS p_name, PROJECTS.depth, PROJECTS.latitude, PROJECTS.longitude, "
+                  "FILES.name, FILES.date, FILES.fs, FILES.duration, SPECIES.english_name AS s_name, COUNT(*) AS nb_detections "
+                  "FROM FILES "
+                  "INNER JOIN DETECTIONS ON FILES.id_file = DETECTIONS.id_file "
+                  "INNER JOIN PROJECTS ON FILES.id_project = PROJECTS.id_project "
+                  "INNER JOIN SPECIES ON DETECTIONS.id_species = SPECIES.id_species "
+                  "WHERE FILES.name=%s "
+                  "GROUP BY DETECTIONS.id_species;")
+        cls.__cursor.execute(querry, (file_name,))
         result = cls.__cursor.fetchall()
-        
+
         return result
    
         

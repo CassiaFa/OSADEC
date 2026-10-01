@@ -39,4 +39,5 @@ services:
       - ./db/osadecdb:/var/lib/mysql
       - ./db/db_files/init_db.sql:/docker-entrypoint-initdb.d/1_schema.sql
       - ./db/db_files/load_data.sql:/docker-entrypoint-initdb.d/2_load_data.sql
+      - ./db/db_files/migrations/0001_detection_review.sql:/docker-entrypoint-initdb.d/3_migration_0001_detection_review.sql
       - ./db/db_files/init_data/:/var/lib/mysql-files/

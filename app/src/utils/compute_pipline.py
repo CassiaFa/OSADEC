@@ -196,7 +196,7 @@ def get_results(result, spectro, detection, spectro_start, class_names):
                     "start": datetime.strftime(det_start, "%Y-%m-%d %H:%M:%S"),
                     "end": datetime.strftime(det_end, "%Y-%m-%d %H:%M:%S"),
                     "fmin": fmin,
-                    "fmax:": fmax,
+                    "fmax": fmax,
                     "confidence": confidence
                 }
 

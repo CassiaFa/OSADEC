@@ -28,22 +28,20 @@
 
             if (status == 'complete'){
                 window.location.href = window.location.href;
-                // window.location.reload();
             }
         });
-        
     </script>
-{% endblock %}  
+{% endblock %}
 
 {% block content %}
 
 <div class="user_field">
-    <div class="user_info">
+    <div class="user_info card">
         <div class="user_img circleBase">
-            <img src="{{ url_for('static', filename='images/user.png') }}" alt="User image">
+            <img src="{{ url_for('static', filename='images/user.png') }}" alt="">
         </div>
         <div class="user_perso">
-            <table>
+            <table class="table user-table">
                 <tbody>
                     <tr>
                         <th colspan="2">{{ user['username'].upper() }}</th>
@@ -64,58 +62,65 @@
                         <td>Registration date:</td>
                         <td>{{ user['registration_date'] }}</td>
                     </tr>
-                    <tr>
-                        <td colspan="2" id="deconnexion"><a class="header-signin" href="{{ url_for('logout') }}">Deconnexion</a></td>
-                    </tr>
                 </tbody>
             </table>
         </div>
     </div>
     <div class="tabs">
-        <div class="tab-registers">
-            <button class="active-tab tab-button">Analyse</button>
-            <button class="tab-button">Explore files</button>
+        <div class="tab-registers" role="tablist" aria-label="Account sections">
+            <button class="active-tab tab-button" type="button" role="tab" aria-selected="true">Analyse</button>
+            <button class="tab-button" type="button" role="tab" aria-selected="false">Explore files</button>
         </div>
         <div class="tab-bodies">
-            <div class="dashboard" style="display:block;">
-              
+            <div class="dashboard" style="display:block;" role="tabpanel">
+
                 <h1 class="title_form">Analyse a new file</h1>
                 <form id="upload-form" action="/upload" enctype="multipart/form-data" method="post" onsubmit="handleSubmit(event)">
-                    <div id="project" class="element_form">
-                        <label for="project_name">Choose or write a project name: *  </label>
-                        <input list="project_name" name="project" placeholder="Project Name*" required>
-                        <datalist id="project_name">
-                            {% for p in projects %}
-                                <option value="{{ p }}">
-                            {% endfor %}
-                        </datalist>
-                        <label for="acquisition_date">Date of acquisition: *  </label>
-                        <input type="datetime-local" name="acquisition_date" step="1"  required>
+                    <div id="project" class="element_form form-row">
+                        <div class="field">
+                            <label for="project_name">Choose or write a project name *</label>
+                            <input class="input" list="project_name" id="project_name" name="project" placeholder="Project name" required>
+                            <datalist id="project_name">
+                                {% for p in projects %}
+                                    <option value="{{ p }}">
+                                {% endfor %}
+                            </datalist>
+                        </div>
+                        <div class="field">
+                            <label for="acquisition_date">Date of acquisition *</label>
+                            <input class="input" type="datetime-local" id="acquisition_date" name="acquisition_date" step="1" required>
+                        </div>
                     </div>
-                    <div id="coordinate" class="element_form">
-                        <label for="depth">Depth: * </label>
-                        <input type="number" min="0" max="11022" name="depth" placeholder="Depth *" required>
-                        <label for="lat">Latitude: * </label>
-                        <input type="number" step=".000001" min="-90" max="90" name="lat" placeholder="Latitude*" required>
-                        <label for="long">Longitude: * </label>
-                        <input type="number" step=".000001" max="180" min="-180" name="long" placeholder="Longitude*" required>
+                    <div id="coordinate" class="element_form form-row">
+                        <div class="field">
+                            <label for="depth">Depth (m) *</label>
+                            <input class="input" type="number" id="depth" min="0" max="11022" name="depth" placeholder="Depth" required>
+                        </div>
+                        <div class="field">
+                            <label for="lat">Latitude *</label>
+                            <input class="input" type="number" id="lat" step=".000001" min="-90" max="90" name="lat" placeholder="Latitude" required>
+                        </div>
+                        <div class="field">
+                            <label for="long">Longitude *</label>
+                            <input class="input" type="number" id="long" step=".000001" max="180" min="-180" name="long" placeholder="Longitude" required>
+                        </div>
                     </div>
-                    <div class="dropzone" id="dropzone">
-                        <p>Drag and drop files here, or click to select files</p>
-                        <input type="file" id="file" name="file" onchange="handleFileSelect(this)" required>
+                    <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-label="Choose a .wav file to upload">
+                        <p>Drag and drop a .wav file here, or click to select one</p>
+                        <input type="file" id="file" name="file" accept=".wav" onchange="handleFileSelect(this)" required>
                     </div>
-                    <input type="submit" id="submit" value="Upload and analyse">
-                    <p id="obligation">* Required fields</p>
+                    <button type="submit" id="submit" class="btn btn-primary">Upload and analyse</button>
+                    <p id="obligation" class="field-hint">* Required fields</p>
                 </form>
                 <div id="progress-bar" style="display:none;">
-                    <div id="progress" class="progress"><div id="bar"></div></div>
+                    <div id="progress" class="progress-track"><div id="bar" class="progress-track__bar"></div></div>
                     <p id="progress-status" class="progress-status"></p>
                 </div>
             </div>
-            <div class="dashboard explore" style="display:none;">
+            <div class="dashboard explore" style="display:none;" role="tabpanel">
                 <h1 class="title_form">List of files</h1>
-                <div class="tableFixHead" style="overflow-x:auto;">
-                    <table id="files_table">
+                <div class="table-wrap tableFixHead">
+                    <table id="files_table" class="table">
                         <thead>
                             <tr>
                                 <th>File name</th>
@@ -127,9 +132,17 @@
                         {% for f in files %}
                             <tr>
                                 <td><a class="link-card" href="{{ url_for('get_info', filename=f['name']) }}">{{ f['name'] }}</a></td>
-                                <td>{{ f['date'] }}</td>
-                                <td class="download_icon"> <p style="margin-right: 10px;">.wav :</p><a href="{{ url_for('download_file', file=f['name'] , type='wav')}}"><img src="{{ url_for('static', filename='images/download.png') }}" alt="Download file" width="20" height="20"></a></td>
-                                <td class="download_icon"><p style="margin-right: 10px;">.csv :</p><a href="{{ url_for('download_file', file=f['name'], id=f['id_file'], type='csv')}}"><img src="{{ url_for('static', filename='images/download.png') }}" alt="Download file" width="20" height="20"></a></td>
+                                <td class="numeric">{{ f['date'] }}</td>
+                                <td class="download_icon">
+                                    <a class="btn btn-ghost" href="{{ url_for('download_file', file=f['name'] , type='wav')}}">
+                                        <img src="{{ url_for('static', filename='images/download.png') }}" alt="" width="16" height="16">
+                                        .wav
+                                    </a>
+                                    <a class="btn btn-ghost" href="{{ url_for('download_file', file=f['name'], id=f['id_file'], type='csv')}}">
+                                        <img src="{{ url_for('static', filename='images/download.png') }}" alt="" width="16" height="16">
+                                        .csv
+                                    </a>
+                                </td>
                             </tr>
                         {% endfor %}
                         </tbody>
@@ -138,7 +151,7 @@
             </div>
         </div>
     </div>
-    
+
 </div>
 
 {% endblock %}

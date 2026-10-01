@@ -4,6 +4,13 @@ dropzone.addEventListener('click', function() {
   const fileInput = document.querySelector('#file');
   fileInput.click();
 });
+// Keyboard activation (Enter / Space) for the role="button" dropzone.
+dropzone.addEventListener('keydown', function(event) {
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault();
+    document.querySelector('#file').click();
+  }
+});
 dropzone.addEventListener('mouseover', handleDropZoneMouseOver);
 
 // Add event listener to the file input field

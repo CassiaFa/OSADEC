@@ -2,49 +2,58 @@
 
 {% block title %}OSADEC | Create Account{% endblock %}
 
-
 {% block links %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/sign_in.css') }}">
-{% endblock %} 
+{% endblock %}
 
 {% block content %}
-<div class="login-container">
-    <h1>Create Account</h1>
-    <form action="{{ url_for('account') }}" method="post">
-      <div class="form-group">
-        <label for="gender">Gender:</label>
-        <select id="gender" name="gender">
-          <option value="">Choose your gender</option>
-          <option value="male">Male</option>
-          <option value="female">Female</option>
-          <option value="other">Other</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label for="firstName">First name:</label>
-        <input type="text" id="firstName" name="firstName" required>
-      </div>
-      <div class="form-group">
-        <label for="lastName">Last name:</label>
-        <input type="text" id="lastName" name="lastName" required>
-      </div>
-      <div class="form-group">
-        <label for="username">Username:</label>
-        <input type="text" id="username" name="username" required>
-      </div>
-      <div class="form-group">
-        <label for="email">Email:</label>
-        <input type="email" id="email" name="email" required>
-      </div>
-      <div class="form-group">
-        <label for="password">Password:</label>
-        <input type="password" id="password" name="password" required>
-      </div>
-      <div class="form-group">
-        <button type="submit">Create Account</button>
-        
-        <input name="state" type="hidden" value="sign_up">
-      </div>
-    </form>
-  </div>
+<div class="auth-shell">
+    {% include 'partials/auth_brand.html' %}
+
+    <div class="auth-form">
+        <div class="auth-form__panel">
+            <h1>Create account</h1>
+            <p class="auth-form__lead">Join OSADEC to upload recordings and review detections.</p>
+
+            <form action="{{ url_for('account') }}" method="post" novalidate>
+                <div class="field">
+                    <label for="gender">Gender</label>
+                    <select class="input" id="gender" name="gender">
+                        <option value="">Choose your gender</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <div class="field">
+                        <label for="firstName">First name</label>
+                        <input class="input" type="text" id="firstName" name="firstName" autocomplete="given-name" required>
+                    </div>
+                    <div class="field">
+                        <label for="lastName">Last name</label>
+                        <input class="input" type="text" id="lastName" name="lastName" autocomplete="family-name" required>
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="username">Username</label>
+                    <input class="input" type="text" id="username" name="username" autocomplete="username" required>
+                </div>
+                <div class="field">
+                    <label for="email">Email</label>
+                    <input class="input" type="email" id="email" name="email" autocomplete="email" required>
+                </div>
+                <div class="field">
+                    <label for="password">Password</label>
+                    <input class="input" type="password" id="password" name="password" autocomplete="new-password" required>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block">Create account</button>
+                <input name="state" type="hidden" value="sign_up">
+            </form>
+
+            <p class="auth-form__foot">Already have an account? <a href="{{ url_for('sign_in') }}">Sign in</a></p>
+        </div>
+    </div>
+</div>
 {% endblock %}

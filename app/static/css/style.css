@@ -1,103 +1,68 @@
-/* Mise en forme générale */
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-  }
-  
-  /* Bannière */
-  .header {
-    background-color: #f1f1f1;
-    display: flex;
-    justify-content: space-between;
-    padding: 20px;
-  }
-  
-  .header-title {
-    /* font-size: 24px; */
-    margin: 0;
-  }
+/* Page-specific styles for index.html (landing page).
+   Shared tokens / components live in app.css. */
 
-  .title {
-    /* font-size: 24px; */
-    font-family: 'EB Garamond', serif;
-    font-size: 3rem;
-    margin: 0;
-    color: black;
-    text-decoration: none;
-  }
+.hero {
+  min-height: calc(100vh - var(--topbar-height, 73px));
+  background: linear-gradient(158deg, oklch(26% 0.06 240) 0%, var(--color-accent) 100%),
+              url('../images/orca.jpg') center / cover no-repeat;
+  background-blend-mode: multiply;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-8) var(--space-5);
+}
 
-  .title:visited {
-    color: black;
-  }
-  
-  .header-signin {
-    border: 2px solid blue;
-    color: blue;
-    padding: 10px 20px;
-    border-radius: 5px;
-    height: 50%;
-    font-size: 16px;
-    text-decoration: none;
-  }
-  
-  .header-signin:hover {
-    background-color: blue;
-    color: white;
-  }
-  
-  /* Section d'introduction */
-  .intro {
-    background-repeat:no-repeat; /*removes repetition*/
-    background-size:cover; /*allows picture to take up whole section space*/
-    background-image: url('../images/orca.jpg');
-    display: flex;
-    justify-content: center;
-  }
-  
-  .intro-block {
-    background-color: rgba(255, 255, 255, 0.5);
-    border-radius: 20px;
-    width: 60%;
-    padding: 40px;
-    text-align: center;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-direction: column;
-  }
+.hero-card {
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  color: oklch(97% 0.01 200);
+}
 
-  .intro-text {
-    width: 70%;
-    padding: 20px;
-    text-align: justify;
-    font-size: 18px;
-    font-weight: 600;
-  }
+.kicker {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: oklch(85% 0.05 200);
+}
 
-  .intro-title {
-    font-size: 36px;
-    /* margin- */
-  }
+.hero-title {
+  margin: 0;
+  font-size: clamp(28px, 4vw, 40px);
+  line-height: 1.25;
+  font-weight: 600;
+}
 
-  .intro-button {
-    border: 2px solid blue;
-    color: blue;
-    padding: 10px 20px;
-    border-radius: 5px;
-    /* height: 50%; */
-    font-size: 16px;
-    text-decoration: none;
-  }
-  
-  .intro-button:hover {
-    background-color: blue;
-    color: white;
-  }
+.hero-text {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.7;
+  color: oklch(90% 0.02 200);
+}
 
-  #drop_zone {
-    border: 5px solid blue;
-    width: 200px;
-    height: 100px;
-  }
-  
+.hero-points {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.hero-points li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: 14px;
+  color: oklch(92% 0.02 200);
+}
+
+.hero-card .btn {
+  align-self: flex-start;
+}
+
+@media (max-width: 600px) {
+  .hero { padding: var(--space-6) var(--space-4); }
+}

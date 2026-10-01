@@ -9,8 +9,10 @@ Array.from(document.querySelectorAll('.tabs')).forEach((tab_container, TabID) =>
       el.addEventListener('click', (ev) => {
         let activeRegister = registers.querySelector('.active-tab');
         activeRegister.classList.remove('active-tab')
+        activeRegister.setAttribute('aria-selected', 'false')
         activeRegister = el;
         activeRegister.classList.add('active-tab')
+        activeRegister.setAttribute('aria-selected', 'true')
         changeBody(registers, bodies, activeRegister)
       })
   })

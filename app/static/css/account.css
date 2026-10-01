@@ -1,289 +1,134 @@
-.user_field{
-    display: flex;
+/* Page-specific styles for account.html.
+   Buttons, tables, dropzone, pills and form fields come from app.css. */
+
+.user_field {
+  display: flex;
+  gap: var(--space-5);
+  padding: var(--space-5);
+  align-items: flex-start;
+  flex-wrap: wrap;
 }
 
 .user_info {
-    width: 20%;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
+  width: 240px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-5);
+  gap: var(--space-3);
 }
+
+.user_img {
+  width: 7rem;
+  height: 7rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--color-subtle);
+}
+
+.circleBase { border-radius: 50%; }
+
+.user_perso {
+  width: 100%;
+}
+
+.user-table { border: none; }
+.user-table th, .user-table td { border: none; padding: var(--space-1) var(--space-2); white-space: normal; }
+.user-table th { background: transparent; color: var(--color-ink); font-size: 14px; text-align: center; padding-bottom: var(--space-2); }
 
 /* ================================= */
 /*              TAB STYLE            */
 /* ================================= */
 
-.tabs { 
-    font-family: 'EB Garamond', serif;
-    font-size: 1.2rem;
-    width: 100%;
+.tabs {
+  flex-grow: 1;
+  min-width: 0;
 }
 
 .tabs .tab-registers {
-    display: flex;
-    background-color: RGB(255, 255, 255);
-    font-weight:  bold;
+  display: flex;
+  gap: var(--space-1);
+  border-bottom: 1px solid var(--color-line);
 }
-
 
 .tabs button {
-    padding: 0.5em;
-    background-color: RGB(255, 255, 255);
-    border: none;
-    font: inherit;
+  padding: var(--space-3) var(--space-4);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font: inherit;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--color-muted);
+  cursor: pointer;
 }
 
-.tabs .tab-registers button:hover {
-    cursor: pointer;
+.tabs button:hover { color: var(--color-ink); }
+
+.tabs button.active-tab {
+  color: var(--color-accent);
+  border-bottom-color: var(--color-accent);
 }
 
 .tabs .tab-bodies {
-    height: 100%;
-    padding: 0.5em;
-    background-color: RGB(235, 235, 235);
-    flex-grow: 1;
-    overflow-y: auto;
-}
-
-.tabs button.active-tab {
-    background-color: rgb(235, 235, 235);
-}
-
-.tab-button:hover {
-    background-color: rgb(235, 235, 235);
-    border-radius: 3px;
-}
-
-/* ================================= */
-
-
-
-.dashboard{
-    width : 100%;
-}
-
-.user_img {
-    width: 10rem;
-    height: 10rem;
-    border: 2px;
-    margin: 2%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.circleBase{
-    border-radius: 50%;
-}
-
-img {
-    max-width: 100%;
-    max-height: 100%;
-}
-
-.user_perso {
-    margin: auto;
-    width: 100%;
-    height: 100%;
-    margin-top: 10px;
+  padding: var(--space-5) 0;
 }
 
 /* ============================ */
 /*          Explore table       */
+/* ============================ */
 
 .tableFixHead {
-    overflow-y: auto; /* make the table scrollable if height is more than 200 px  */
-    height: 500px; /* gives an initial height of 200px to the table */
-}
-.tableFixHead thead th {
-    position: sticky; /* make the table heads sticky */
-    top: 0px; /* table head will be placed from the top of the table and sticks to it */
+  max-height: 520px;
+  overflow-y: auto;
 }
 
-#files_table {
-    margin: 10px auto; /* or margin: 0 auto 0 auto */
-    font-family: 'EB Garamond', serif;
-    border-collapse: collapse;
-    width: 80%;
-    
+.title_form {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0 0 var(--space-4);
 }
-
-#files_table td, #files_table th {
-    border: 1px solid #ddd;
-    padding: 8px;
-    text-align: left;
-  }
-
-#files_table tr:nth-child(even){
-    background-color: #f2f2f2;
-}
-
-#files_table tr:hover {
-    background-color: #ddd;
-}
-
-#files_table th {
-    background-color: blue;
-    color: white;
-  }
-
 
 .link-card {
-    color: black;
-    text-decoration: none;
-    
+  color: var(--color-ink);
+  font-weight: 500;
+  text-decoration: none;
 }
-
-.link-card:visited{
-    color: black;
-}
+.link-card:hover { color: var(--color-accent); text-decoration: underline; }
 
 .download_icon {
-    display: flex;
-    justify-content: center;
-    align-items: center;
+  display: flex;
+  gap: var(--space-2);
+  white-space: nowrap;
 }
 
+.download_icon img { opacity: .7; }
 
+/* ============================= */
+/*          Upload form          */
 /* ============================= */
 
 #upload-form {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    height: 30%;
-    min-width: 50%;
+  display: flex;
+  flex-direction: column;
+  max-width: 640px;
+  gap: var(--space-2);
 }
 
-.element_form {
-    margin: 10px auto;
+.element_form { margin-bottom: var(--space-2); }
+
+#upload-form .dropzone {
+  margin: var(--space-2) 0 var(--space-3);
 }
 
-label {
-    font-family: 'EB Garamond', serif;
-    font-weight: bold;
-    margin-left: 10px;
-    margin-right: 5px;
+#submit { align-self: flex-start; }
+
+@media (max-width: 700px) {
+  .user_field { flex-direction: column; padding: var(--space-4); }
+  .user_info { width: 100%; }
+  .tabs .tab-registers { overflow-x: auto; }
 }
 
-input {
-    border-radius: 5px;
-    padding: 2px;
-    border: 2px solid blue;
-}
-
-#submit {
-    border: 2px solid blue;
-    color: blue;
-    padding: 10px 20px;
-    border-radius: 5px;
-    height: 50%;
-    font-size: 16px;
-    text-decoration: none;
-    margin-bottom: 10px;
-}
-
-#submit:hover {
-    background-color: blue;
-    color: white;
-  }
-
-/* .explore {
-} */
-
-/* Dropzone */
-
-.dropzone {
-    border: 4px dashed blue;
-    border-radius: 5px;
-    margin: 50px 0 10px; 
-    min-height: 200px; 
-    width: 40%; 
-    font-weight: bold; 
-    font-family: "EB Garamond", serif;
-    padding: 10px;
-    text-align: center;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-direction: column;
-}
-
-input[type="file"] {
-    display: none;
-}
-/* ================================= */
-/*            Progress bar           */
-/* ================================= */
-
-/* Progress bar container */
-.progress {
-    width: 100%;
-    height: 20px;
-    background-color: #f2f2f2;
-    border: 2px solid blue;
-    border-radius: 4px;
-    margin-bottom: 10px;
-  }
-  
-  /* bar */
-  #bar {
-    height: 100%;
-    background-color: blue;
-    border-radius: 4px;
-    transition: width 0.3s ease-in-out;
-  }
-  
-  /* Progress status text */
-  .progress-status {
-    margin-top: 5px;
-  }
-
-  #percent{
-    height: 100%;
-    background-color: blue;
-    border-radius: 4px;
-    transition: width 0.3s ease-in-out;
-  }
-
-/* Progress bar
-
-.container {
-    margin: 100px auto;
-    width: 500px;
-    text-align: center;
-  }
-   
-  .progress2 {
-    padding: 6px;
-    border-radius: 30px;
-    background: rgba(0, 0, 0, 0.25);  
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25), 0 1px rgba(255, 255, 255, 0.08);
-  }
-  
-  .progress-bar2 {
-    height: 18px;
-    border-radius: 30px;
-    background-image: 
-      linear-gradient(to bottom, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.05));
-    transition: 0.4s linear;  
-    transition-property: width, background-color;    
-  }
-  
-  .progress-moved .progress-bar2 {
-    width: 100%; 
-    background-color: blue;  
-    animation: progressAnimation 6s;
-  }
-  
-  @keyframes progressAnimation {
-    0%   { width: 0%; background-color: #a3a3ff;}
-    100% { width: 100%; background-color: blue; }
-  }
-  
-
-#deconnexion {
-    padding-top: 3em;
-    text-align: center;
-} */

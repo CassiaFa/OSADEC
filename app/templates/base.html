@@ -5,34 +5,37 @@
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>{% block title %}{% endblock%}</title>
-        <!-- Font link -->
+        <!-- Favicon -->
         <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/logo.png') }}" />
+        <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=EB+Garamond&display=swap" rel="stylesheet">
-        <!-- CSS file -->
+        <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+        <!-- Design system (tokens + shared components) -->
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
         <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-        {% block links %}{% endblock %}       
+        {% block links %}{% endblock %}
     </head>
 <body>
-    <!-- Header of webb app -->
-    <!-- <header class="page_header">
-        <div id="title"><a href="{{ url_for('index') }}" id="logo">OSADEC</a></div>
-        <div id="sign_in">
-            <a href="{{ url_for('sign_in') }}" id="a_sign_in"> Sign in </a>
-        </div>
-        <div id="sign_up">
-            <a href="{{ url_for('sign_up') }}" id="a_sign_up"> Sign up</a>
-        </div>
-    </header> -->
-    <header class="header">
-        <h1 class="header-title"><a href="{{ url_for('index') }}" class="title">OSADEC</a></h1>
-        <a class="header-signin" href="{{ url_for('sign_in') }}">Sign in</a>
+    <header class="site-header">
+        <a href="{{ url_for('index') }}" class="site-header__brand">
+            <span class="site-header__logo" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h3l2 6 4-14 3 10 2-4h4"/></svg>
+            </span>
+            OSADEC
+        </a>
+        <nav class="site-header__nav" aria-label="Account">
+            {% if session.user %}
+                <span class="site-header__user">{{ session.user.username }}</span>
+                <a class="btn btn-secondary" href="{{ url_for('account') }}">My account</a>
+                <a class="btn btn-ghost" href="{{ url_for('logout') }}">Sign out</a>
+            {% else %}
+                <a class="btn btn-primary" href="{{ url_for('sign_in') }}">Sign in</a>
+            {% endif %}
+        </nav>
     </header>
     <section>
         {% block content %}{% endblock %}
-
-        
     </section>
     {% block script %}{% endblock %}
 </body>

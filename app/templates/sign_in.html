@@ -4,29 +4,40 @@
 
 {% block links %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/sign_in.css') }}">
-{% endblock %} 
+{% endblock %}
 
 {% block content %}
-    <div class="login-container">
-        <h1>Sign In</h1>
-        <form action="{{ url_for('account') }}" method="post">
-          <div class="form-group">
-            <label for="username">Username:</label>
-            <input type="text" id="username" name="username">
-          </div>
-          <div class="form-group">
-            <label for="password">Password:</label>
-            <input type="password" id="password" name="password">
-          </div>
-          <button type="submit">Sign In</button>
-          <input name="state" type="hidden" value="sign_in">
-        </form>
-        <p>
-          Don't have an account? <a href="{{ url_for('sign_up') }}">Sign up</a>
-        </p>
-        <p>
-          <a href="{{ url_for('forgot_password') }}">Forgot password?</a>
-        </p>
-      </div>
-      
+<div class="auth-shell">
+    {% include 'partials/auth_brand.html' %}
+
+    <div class="auth-form">
+        <div class="auth-form__panel">
+            <h1>Sign in</h1>
+            <p class="auth-form__lead">Welcome back. Enter your credentials to continue.</p>
+
+            <form action="{{ url_for('account') }}" method="post" novalidate>
+                <div class="field">
+                    <label for="username">Username</label>
+                    <input class="input" type="text" id="username" name="username" autocomplete="username" required>
+                </div>
+                <div class="field">
+                    <label for="password">Password</label>
+                    <input class="input" type="password" id="password" name="password" autocomplete="current-password" required>
+                </div>
+
+                <div class="auth-form__row">
+                    <span></span>
+                    <a href="{{ url_for('forgot_password') }}">Forgot password?</a>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block">Sign in</button>
+                <input name="state" type="hidden" value="sign_in">
+            </form>
+
+            <div class="auth-form__divider">New to OSADEC</div>
+
+            <a class="btn btn-secondary btn-block" href="{{ url_for('sign_up') }}">Create an account</a>
+        </div>
+    </div>
+</div>
 {% endblock %}

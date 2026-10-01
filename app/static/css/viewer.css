@@ -186,6 +186,13 @@
 }
 .detection-label.is-below-threshold { display: none; }
 
+.spectrogram-status[hidden] {
+  /* The `display: flex` below beats the UA [hidden] stylesheet rule on its
+     own (same origin, and this selector is more specific), so the JS
+     toggling `statusEl.hidden` would otherwise never actually hide this
+     overlay - reassert it explicitly. */
+  display: none;
+}
 .spectrogram-status {
   position: absolute;
   inset: 0;

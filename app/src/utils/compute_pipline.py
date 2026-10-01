@@ -152,6 +152,101 @@ def compute_spectro(filepath, start, stop, fs, img_name, path, freq_min=15, freq
 
     return spectro
 
+# --- Dashboard/explorer thumbnails (Phase 2 of the redesign, optional item) ---
+#
+# Low-resolution preview of the *start* of a record's spectrogram, shown as a
+# small card image in the dashboard (`dashboard.js`) and explorer
+# (`files.js`) instead of the CSS gradient placeholder (`.record-thumb--empty`
+# in `app/static/css/app.css`) whenever a real one can be produced. Separate
+# from the on-demand, full-resolution, axis-calibrated images served by
+# `GET /api/records/<id>/spectrogram` (app/src/api/records.py): a thumbnail is
+# never used to position detection boxes, so it keeps no axis geometry and can
+# be aggressively downsized.
+#
+# Storage: `bucket/spectrograms/<id_file>.png` (relative to the app's cwd,
+# `/osadec` in the container - same convention as `UPLOAD_FOLDER=./bucket` in
+# `.env` and `records.py`'s `CACHE_DIR`), inside the `bucket/` volume so it
+# survives container restarts without being baked into the image.
+THUMBNAIL_DIR = os.path.join("bucket", "spectrograms")
+THUMBNAIL_DURATION = 60  # seconds of audio rendered, from the start of the file
+THUMBNAIL_SIZE = (320, 90)  # px - a dashboard/explorer card, not the full viewer
+
+
+def thumbnail_path(id_file, base_dir=THUMBNAIL_DIR):
+    """
+    Path of the cached thumbnail PNG for `id_file`. Shared by `generate_thumbnail`
+    (writer) and `app/src/api/projects.py`'s `GET /api/records/<id>/thumbnail`
+    route and `has_thumbnail` field (readers), so the on-disk naming convention
+    only lives in one place.
+    """
+    return os.path.join(base_dir, f"{id_file}.png")
+
+
+def generate_thumbnail(filepath, id_file, duration=THUMBNAIL_DURATION,
+                        freq_min=15, freq_max=200, size=THUMBNAIL_SIZE,
+                        base_dir=THUMBNAIL_DIR):
+    """
+    Renders the first `duration` seconds of `filepath` as a low-resolution
+    spectrogram PNG (same 15-200Hz band and STFT parameters as the rest of the
+    app, via `compute_spectro`/`Spectrogram`) and stores it at
+    `thumbnail_path(id_file, base_dir)`, overwriting any previous thumbnail for
+    this record.
+
+    Called two ways:
+      - optionally from `pipeline()` (pass `id_file` there) right after an
+        analysis completes, so the common case is a pre-warmed cache;
+      - on demand, lazily, from the `GET /api/records/<id>/thumbnail` route
+        the first time it is requested for a record that has no cached
+        thumbnail yet but does have a real `.wav` on disk - this is what
+        actually guarantees "every record with a real audio file gets a
+        thumbnail" without requiring every caller to remember to pass
+        `id_file` to `pipeline()`.
+
+    Returns the path written, or `None` if `filepath` does not exist on disk
+    or has zero usable duration (nothing to render).
+    """
+    if not os.path.exists(filepath):
+        return None
+
+    try:
+        with sf.SoundFile(filepath) as f:
+            file_duration = f.frames / f.samplerate
+    except Exception:
+        return None
+
+    end = min(float(duration), float(file_duration))
+    if end <= 0:
+        return None
+
+    os.makedirs(base_dir, exist_ok=True)
+
+    # Unique temporary filename (see `pipeline()`'s `img_name` for the same
+    # reasoning): `generate_thumbnail` can run concurrently with itself (a
+    # background analysis job pre-warming the cache while a dashboard request
+    # lazily triggers the same record) or with an unrelated record's pipeline
+    # run, and must not collide with another call's temp file.
+    tmp_name = f"thumb_{uuid.uuid4().hex}.png"
+    tmp_path = os.path.join(base_dir, tmp_name)
+
+    # `compute_spectro`'s `fs` argument is unused internally (it always
+    # resamples to 2000Hz via `librosa.load(sr=2000, ...)`) - passed through
+    # here only to match its signature.
+    spectro = compute_spectro(filepath, 0, end, 2000, tmp_name, base_dir,
+                               freq_min=freq_min, freq_max=freq_max)
+    try:
+        spectro.close()
+        del spectro
+
+        out_path = thumbnail_path(id_file, base_dir)
+        with Image.open(tmp_path) as img:
+            img.convert("RGB").resize(size, Image.LANCZOS).save(out_path)
+    finally:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+
+    return out_path
+
+
 def get_results(result, spectro, detection, spectro_start, class_names, species_map):
 
     """
@@ -265,7 +360,8 @@ def compute_windows(duration, sec=300):
     return windows
 
 
-def pipeline(filepath: str, date: datetime, duration: int, fs: int, progress_callback=None, species_map=None):
+def pipeline(filepath: str, date: datetime, duration: int, fs: int, progress_callback=None, species_map=None,
+             id_file=None):
     """
     Runs a pipeline to detect objects in a spectrogram generated from a given audio file.
 
@@ -287,6 +383,18 @@ def pipeline(filepath: str, date: datetime, duration: int, fs: int, progress_cal
             `app.py`'s `_run_analysis_job`) should instead fetch it themselves
             and pass it in, so `pipeline()` never needs its own database
             connection open for the whole (potentially long) inference run.
+        id_file: Optional `FILES.id_file` for this record (Phase 2 dashboard/
+            explorer thumbnails, see `generate_thumbnail`). When given, a
+            low-res preview thumbnail is rendered and cached right after
+            inference completes, so the dashboard/explorer don't have to wait
+            for it on first view. Defaults to `None` (no thumbnail generated
+            here) so existing callers keep working unchanged -
+            `app.py`'s `_run_analysis_job` does not pass it today; the
+            `GET /api/records/<id>/thumbnail` route
+            (`app/src/api/projects.py`) generates the thumbnail lazily on
+            first request instead, so this argument is an optional
+            pre-warming optimisation, not a requirement for thumbnails to
+            work.
 
     Returns:
         A list of dictionaries, where each dictionary corresponds to a detected object and contains the following keys:
@@ -363,6 +471,17 @@ def pipeline(filepath: str, date: datetime, duration: int, fs: int, progress_cal
 
     if os.path.exists(img_path):
         os.remove(img_path)
+
+    if id_file is not None:
+        try:
+            generate_thumbnail(filepath, id_file)
+        except Exception:
+            # Best-effort: the dashboard/explorer thumbnail is a nice-to-have,
+            # never let it fail a pipeline run that otherwise produced real
+            # detections (the lazy `GET /api/records/<id>/thumbnail` route
+            # will just retry on next request).
+            import traceback
+            traceback.print_exc()
 
     return detection
 

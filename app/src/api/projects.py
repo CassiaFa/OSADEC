@@ -8,6 +8,7 @@ Routes defined here:
     GET /api/projects                       - project picker (id, name, file_count)
     GET /api/projects/<id>/stats             - dashboard summary cards
     GET /api/projects/<id>/records           - explorer listing (search/filter/sort/paginate)
+    GET /api/records/<id>/thumbnail          - low-res dashboard/explorer spectrogram thumbnail
 
 Design notes
 ------------
@@ -34,9 +35,12 @@ viewer will need for its own per-record status - defined once here so it is not
 reinvented when the viewer lands.
 """
 
-from flask import abort, request
+import os
+
+from flask import abort, request, send_file
 
 from . import api_bp
+from ..utils.compute_pipline import generate_thumbnail, thumbnail_path
 from ..utils.db_tools import Database
 
 
@@ -89,6 +93,37 @@ def _detections_by_file(id_files):
         if row["id_file"] in id_files:
             by_file.setdefault(row["id_file"], []).append(row)
     return by_file
+
+
+def _get_file_or_404(id_file):
+    Database.open_connexion()
+    try:
+        file_row = Database.get_files(id_file=id_file)
+    finally:
+        Database.close_connexion()
+
+    if not file_row:
+        abort(404, description=f"Record {id_file} not found.")
+    return file_row
+
+
+def _has_thumbnail(id_file, file_row):
+    """
+    Whether `GET /api/records/<id_file>/thumbnail` can/will return a real PNG:
+    either already cached (`bucket/spectrograms/<id_file>.png`), or the
+    record's `.wav` is actually present on disk so the route can render one
+    lazily on first request (see `compute_pipline.generate_thumbnail`).
+
+    False for most of the demo dataset today (19 files, only one - `id_file
+    32`, uploaded after the rest - has a real `.wav` on disk in this
+    environment, see CLAUDE.md); the client should fall back to the CSS
+    gradient placeholder (`.record-thumb--empty` in `app/static/css/app.css`)
+    whenever this is `False`.
+    """
+    if os.path.exists(thumbnail_path(id_file)):
+        return True
+    filepath = os.path.join(file_row["path"], file_row["name"])
+    return os.path.exists(filepath)
 
 
 def _record_status(detections):
@@ -228,6 +263,7 @@ def _build_records(files, project_name_by_id):
             "species": [species_map.get(i, f"Species {i}") for i in species_ids],
             "species_ids": species_ids,
             "status": _record_status(dets),
+            "has_thumbnail": _has_thumbnail(f["id_file"], f),
         })
     return records
 
@@ -323,6 +359,42 @@ def all_records():
         "page_size": args["page_size"],
         "pages": pages,
     }
+
+
+@api_bp.route("/records/<int:id_file>/thumbnail", methods=["GET"])
+def record_thumbnail(id_file):
+    """
+    Serves the low-resolution dashboard/explorer spectrogram thumbnail for
+    `id_file` (Phase 2 of the redesign, "Vignettes spectrogramme" - optional
+    item). Companion to `has_thumbnail` above: the client should only point an
+    `<img>` here when that field is `True` for the record, and fall back to
+    the CSS placeholder otherwise.
+
+    Behaviour:
+      - already cached (`bucket/spectrograms/<id_file>.png`) -> served as-is.
+      - not cached yet, but the record's `.wav` is present on disk -> rendered
+        on this request and cached for next time
+        (`compute_pipline.generate_thumbnail`). This - not any change to the
+        upload/analysis route in `app.py` - is what makes "every future
+        upload gets a real thumbnail" true: `pipeline()` also accepts an
+        optional `id_file` to pre-render the thumbnail right after analysis
+        (see its docstring), but nothing requires that to have happened for
+        this route to work.
+      - no `.wav` on disk for this record (true for the bulk of the demo
+        dataset in this environment, see CLAUDE.md) -> 404, so the client can
+        tell it should use the placeholder instead of retrying forever.
+    """
+    file_row = _get_file_or_404(id_file)
+
+    out_path = thumbnail_path(id_file)
+    if not os.path.exists(out_path):
+        filepath = os.path.join(file_row["path"], file_row["name"])
+        generate_thumbnail(filepath, id_file)
+
+    if not os.path.exists(out_path):
+        abort(404, description=f"No spectrogram thumbnail available for record {id_file}.")
+
+    return send_file(out_path, mimetype="image/png")
 
 
 @api_bp.route("/species", methods=["GET"])

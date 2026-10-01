@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{#
+  Phase 2 of the redesign (see docs/redesign/ROADMAP.md): shared rail + top bar
+  "app shell" for the signed-in screens (dashboard, explorer, and future
+  viewer/upload screens). Styled in app.css since Phase 1 (.app-shell,
+  .app-rail, .app-topbar, .project-switcher) but not wired into any page until
+  now. Pages extend this template (not base.html directly) and only fill in
+  `app_content`; the public/auth pages (index, sign_in, ...) keep using
+  base.html's plain `site-header` directly, unaffected by this file.
+
+  Expects (all optional):
+    active_nav: 'dashboard' | 'files' - highlights the matching rail icon.
+    default_project_id: int | None - preselects the project switcher; the
+      actual project list is fetched client-side from `/api/projects`
+      (static/js/app_shell.js) rather than duplicated here.
+#}
+
+{% block body %}
+<div class="app-shell">
+  <aside class="app-rail" aria-label="Main navigation">
+    <a href="{{ url_for('index') }}" class="app-rail__logo" aria-hidden="true">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h3l2 6 4-14 3 10 2-4h4"/></svg>
+    </a>
+    <nav class="app-rail__nav" aria-label="Sections">
+      <a class="app-rail__link" href="{{ url_for('dashboard') }}" title="Dashboard" {% if active_nav == 'dashboard' %}aria-current="page"{% endif %}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></svg>
+        <span class="sr-only">Dashboard</span>
+      </a>
+      <a class="app-rail__link" href="{{ url_for('files_view') }}" title="Records" {% if active_nav == 'files' %}aria-current="page"{% endif %}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7a2 2 0 0 1 2-2h3l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/></svg>
+        <span class="sr-only">Records</span>
+      </a>
+      <a class="app-rail__link" href="{{ url_for('account') }}" title="Upload" {% if active_nav == 'upload' %}aria-current="page"{% endif %}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4M8 8l4-4 4 4"/><path d="M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"/></svg>
+        <span class="sr-only">Upload</span>
+      </a>
+    </nav>
+    <span class="app-rail__link" title="Settings (not available yet)" aria-disabled="true">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 4v2.5M12 17.5V20M4 12h2.5M17.5 12H20M6.3 6.3l1.8 1.8M15.9 15.9l1.8 1.8M6.3 17.7l1.8-1.8M15.9 8.1l1.8-1.8"/></svg>
+      <span class="sr-only">Settings (not available yet)</span>
+    </span>
+  </aside>
+
+  <div class="app-main">
+    <header class="app-topbar">
+      <a class="app-topbar__brand" href="{{ url_for('index') }}">OSADEC</a>
+      <div class="app-topbar__divider" aria-hidden="true"></div>
+      <label class="sr-only" for="project-switcher">Project</label>
+      <select id="project-switcher" class="project-switcher" data-default-project="{{ default_project_id or '' }}">
+        <option value="">All projects&hellip;</option>
+      </select>
+      <div class="app-topbar__spacer"></div>
+      <form class="app-topbar__search" action="{{ url_for('files_view') }}" method="get" role="search">
+        {% if default_project_id %}<input type="hidden" name="project" value="{{ default_project_id }}">{% endif %}
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.5-4.5"/></svg>
+        <label class="sr-only" for="topbar-search">Search records</label>
+        <input id="topbar-search" type="search" name="q" placeholder="Search records">
+      </form>
+      <div class="app-topbar__account">
+        {% if session.user %}
+          <span class="avatar" aria-hidden="true">{{ (session.user.first_name[:1] ~ session.user.last_name[:1])|upper }}</span>
+          <a class="btn btn-ghost" href="{{ url_for('logout') }}">Sign out</a>
+        {% else %}
+          <a class="btn btn-primary" href="{{ url_for('sign_in') }}">Sign in</a>
+        {% endif %}
+      </div>
+    </header>
+
+    <main class="app-view" id="main-content">
+      {% block app_content %}{% endblock %}
+    </main>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/app_shell.js') }}"></script>
+{% endblock %}

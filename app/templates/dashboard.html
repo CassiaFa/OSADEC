@@ -1,0 +1,81 @@
+{% extends 'app_base.html' %}
+
+{% block title %}OSADEC | Dashboard{% endblock %}
+
+{% block app_content %}
+{% if default_project_id %}
+<div class="app-view__header">
+  <div>
+    <h1>Overview</h1>
+    <div class="app-view__subtitle" id="dashboard-subtitle">Loading project&hellip;</div>
+  </div>
+  <div class="app-view__spacer"></div>
+  <a class="btn btn-primary" href="{{ url_for('account') }}">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4M8 8l4-4 4 4"/><path d="M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"/></svg>
+    Upload records
+  </a>
+</div>
+
+<div class="stat-grid" id="stat-grid" aria-live="polite">
+  <div class="card stat-card">
+    <div class="stat-card__label">Records analysed</div>
+    <div class="stat-card__value" id="stat-records">&hellip;</div>
+  </div>
+  <div class="card stat-card">
+    <div class="stat-card__label">Detections</div>
+    <div class="stat-card__value" id="stat-detections">&hellip;</div>
+  </div>
+  <div class="card stat-card">
+    <div class="stat-card__label">Hours of audio</div>
+    <div class="stat-card__value" id="stat-hours">&hellip;</div>
+    <div class="stat-card__hint is-warning" id="stat-pending"></div>
+  </div>
+  <div class="card stat-card">
+    <div class="stat-card__label">Species observed</div>
+    <div class="stat-card__value" id="stat-species">&hellip;</div>
+    <div class="stat-card__hint" id="stat-species-names"></div>
+  </div>
+</div>
+
+<div class="panel-row">
+  <div class="panel-main card">
+    <div class="card-header">
+      <span class="record-list__title">Recent records</span>
+      <div class="app-view__spacer"></div>
+      <a href="{{ url_for('files_view', project=default_project_id) }}">View all</a>
+    </div>
+    <div id="recent-records">
+      <div class="empty-state">Loading records&hellip;</div>
+    </div>
+  </div>
+
+  <div class="panel-side">
+    <div class="card card-body">
+      <div class="record-list__title" style="margin-bottom: var(--space-4)">Detections by species</div>
+      <div class="bar-list" id="species-bars">
+        <div class="empty-state">Loading&hellip;</div>
+      </div>
+    </div>
+
+    <div class="card card-body">
+      <div class="record-list__title" style="margin-bottom: var(--space-3)">Detection model</div>
+      <dl class="kv-list">
+        <div class="kv-row"><span class="kv-row__label">Architecture</span><span>Faster R-CNN (low-freq)</span></div>
+        <div class="kv-row"><span class="kv-row__label">Weights</span><span class="value">latest_lowfreq</span></div>
+        <div class="kv-row"><span class="kv-row__label">Band</span><span>15&ndash;200 Hz</span></div>
+        <div class="kv-row"><span class="kv-row__label">Score threshold</span><span class="value">0.50</span></div>
+      </dl>
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="empty-state">No project yet &mdash; <a href="{{ url_for('account') }}">upload a record</a> to get started.</div>
+{% endif %}
+{% endblock %}
+
+{% block script %}
+{% if default_project_id %}
+<script>window.OSADEC_PROJECT_ID = {{ default_project_id }};</script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endif %}
+{% endblock %}

@@ -114,7 +114,8 @@ class Database():
             return None
     
     @classmethod
-    def get_files(cls, id_file=None, time_min=None, time_max=None, name=None):
+    def get_files(cls, id_file=None, time_min=None, time_max=None, name=None,
+                  id_project=None, limit=None, offset=None, order_by=None, order_dir="DESC"):
         """
         A class method that retrieves files from the FILES table in the database.
 
@@ -123,6 +124,19 @@ class Database():
             time_min (str, optional): The minimum date of files to retrieve.
             time_max (str, optional): The maximum date of files to retrieve.
             name (str, optional): The name of the file to retrieve.
+            id_project (int, optional): Restrict results to this project (Phase 2:
+                dashboard/explorer scoping).
+            limit (int, optional): Max number of rows to return (Phase 2: server-side
+                pagination for the explorer). `None` (default) keeps the historical
+                behaviour of returning every matching row.
+            offset (int, optional): Number of rows to skip before `limit` applies.
+                Only used when `limit` is also set.
+            order_by (str, optional): One of 'date', 'name', 'id_file', 'duration'.
+                `None` (default) keeps the historical behaviour of not sorting
+                explicitly (insertion/primary-key order, as before this method
+                supported pagination).
+            order_dir (str, optional): 'ASC' or 'DESC' (default), only applied when
+                `order_by` is set.
 
         Returns:
             list[dict]: A list of dict if there are multiple, or a dict if there is only one.
@@ -133,15 +147,15 @@ class Database():
         params = []
 
         if id_file:
-            columns = "name, date, duration, path, fs"
+            columns = "name, date, duration, path, fs, id_project"
             conditions.append("id_file=%s")
             params.append(id_file)
         elif name:
-            columns = "id_file, date, duration, path, fs"
+            columns = "id_file, date, duration, path, fs, id_project"
             conditions.append("name=%s")
             params.append(name)
         else:
-            columns = "id_file, name, date, duration, path, fs"
+            columns = "id_file, name, date, duration, path, fs, id_project"
 
         if time_min:
             conditions.append("date>=%s")
@@ -149,16 +163,36 @@ class Database():
         if time_max:
             conditions.append("date<=%s")
             params.append(time_max)
+        if id_project:
+            conditions.append("id_project=%s")
+            params.append(id_project)
 
         querry = f"SELECT {columns} FROM FILES"
         if conditions:
             querry += " WHERE " + " AND ".join(conditions)
+
+        # `order_by` is only ever a fixed literal passed by code in this
+        # repository (never a raw user-supplied column name), so interpolating
+        # it here - instead of as a bind param, which MySQL does not support
+        # for identifiers - is safe as long as that invariant holds; it is
+        # restricted to a fixed allow-list below as a guardrail regardless.
+        if order_by in ("date", "name", "id_file", "duration"):
+            order_dir = "ASC" if str(order_dir).upper() == "ASC" else "DESC"
+            querry += f" ORDER BY {order_by} {order_dir}"
+
+        if limit is not None:
+            querry += " LIMIT %s"
+            params.append(int(limit))
+            if offset is not None:
+                querry += " OFFSET %s"
+                params.append(int(offset))
+
         querry += ";"
 
         cls.__cursor.execute(querry, tuple(params))
 
         result = cls.__cursor.fetchall()
-        
+
         # return first element if there is only one, otherwise return list
         if len(result) == 1:
             return result[0]
@@ -213,22 +247,26 @@ class Database():
         return result
     
     @classmethod
-    def get_projects(cls, name=None, depth=None, lat=None, long=None):
+    def get_projects(cls, id_project=None, name=None, depth=None, lat=None, long=None):
         """
         Retrieves projects from the database based on optional filters.
 
         Args:
+            id_project (int, optional): Integer representing the id of the project to retrieve
+                (Phase 2: dashboard/explorer project scoping).
             name (str, optional): String representing the name of the project to retrieve.
             depth (int, optional): Integer representing the depth of the project to retrieve.
             lat (float, optional): Float representing the latitude of the project to retrieve.
             long (float, optional): Float representing the longitude of the project to retrieve.
 
         Returns:
-            list[dict]: A list of dictionaries representing the retrieved projects, or a dictionary representing a 
+            list[dict]: A list of dictionaries representing the retrieved projects, or a dictionary representing a
             single project if only one is retrieved.
         """
 
-        if name:
+        if id_project:
+            condition, param = "id_project=%s", id_project
+        elif name:
             condition, param = "name=%s", name
         elif depth:
             condition, param = "depth=%s", depth

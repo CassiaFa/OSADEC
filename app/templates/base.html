@@ -17,6 +17,7 @@
         {% block links %}{% endblock %}
     </head>
 <body>
+    {% block body %}
     <header class="site-header">
         <a href="{{ url_for('index') }}" class="site-header__brand">
             <span class="site-header__logo" aria-hidden="true">
@@ -37,6 +38,7 @@
     <section>
         {% block content %}{% endblock %}
     </section>
+    {% endblock %}
     {% block script %}{% endblock %}
 </body>
 </html>

@@ -30,6 +30,8 @@ def health():
 # here (after `api_bp` is defined, before `init_api`/registration is called) so
 # that `records.py` can attach its routes to `api_bp` via `from . import api_bp`.
 from . import records  # noqa: E402,F401
+# Phase 2 (docs/redesign/ROADMAP.md): dashboard/explorer stats + record listing.
+from . import projects  # noqa: E402,F401
 
 
 def _is_api_path(path):

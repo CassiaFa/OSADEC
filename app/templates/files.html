@@ -1,0 +1,77 @@
+{% extends 'app_base.html' %}
+
+{% block title %}OSADEC | Records{% endblock %}
+
+{% block app_content %}
+{% if default_project_id %}
+<div class="app-view__header">
+  <h1 style="margin:0">Records</h1>
+  <span class="badge-count" id="records-total">&hellip;</span>
+  <div class="app-view__spacer"></div>
+  <a class="btn btn-primary" href="{{ url_for('account') }}">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4M8 8l4-4 4 4"/><path d="M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"/></svg>
+    Upload
+  </a>
+</div>
+
+<form class="filter-bar" id="filters">
+  <div class="filter-search">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.5-4.5"/></svg>
+    <label class="sr-only" for="filter-q">Filter by name</label>
+    <input type="search" id="filter-q" name="q" placeholder="Filter by name">
+  </div>
+  <label class="sr-only" for="filter-species">Species</label>
+  <select id="filter-species" name="species">
+    <option value="">All species</option>
+  </select>
+  <label class="sr-only" for="filter-status">Status</label>
+  <select id="filter-status" name="status">
+    <option value="">All statuses</option>
+    <option value="new">New</option>
+    <option value="pending">In review</option>
+    <option value="reviewed">Reviewed</option>
+  </select>
+  <div class="app-view__spacer"></div>
+  <label class="sr-only" for="filter-sort">Sort by</label>
+  <select id="filter-sort" name="sort">
+    <option value="date">Newest first</option>
+    <option value="name">Name</option>
+    <option value="detections">Most detections</option>
+    <option value="duration">Length</option>
+  </select>
+</form>
+
+<div class="table-wrap">
+  <table class="table records-table">
+    <thead>
+      <tr>
+        <th class="col-preview">Preview</th>
+        <th>Record</th>
+        <th>Recorded</th>
+        <th class="numeric">Length</th>
+        <th class="numeric">Detections</th>
+        <th>Review</th>
+        <th class="col-actions"></th>
+      </tr>
+    </thead>
+    <tbody id="records-body">
+      <tr><td colspan="7"><div class="empty-state">Loading records&hellip;</div></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="pagination">
+  <span id="pagination-summary"></span>
+  <span class="pagination__pages" id="pagination-pages"></span>
+</div>
+{% else %}
+<div class="empty-state">No project yet &mdash; <a href="{{ url_for('account') }}">upload a record</a> to get started.</div>
+{% endif %}
+{% endblock %}
+
+{% block script %}
+{% if default_project_id %}
+<script>window.OSADEC_PROJECT_ID = {{ default_project_id }};</script>
+<script src="{{ url_for('static', filename='js/files.js') }}"></script>
+{% endif %}
+{% endblock %}
